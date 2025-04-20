@@ -1,11 +1,11 @@
-#+TITLE: Environment Setup
+#+TITLE: Environment & Development Setup
 #+AUTHOR: Aidan Pace
 #+EMAIL: apace@defrecord.com
 #+PROPERTY: header-args :mkdirp yes
 
-* Environment Configuration Files
+* Environment and Development Configuration
 
-This file manages environment configurations for isolated-pymcp.
+This file manages environment and development configurations for isolated-pymcp.
 
 * Emacs Configuration
 :PROPERTIES:
@@ -13,10 +13,13 @@ This file manages environment configurations for isolated-pymcp.
 :END:
 
 #+BEGIN_SRC emacs-lisp
+;; Project-specific Emacs settings
 ((nil . ((fill-column . 100)
          (indent-tabs-mode . nil)))
  (org-mode . ((org-confirm-babel-evaluate . nil)))
- (python-mode . ((python-indent-offset . 4))))
+ (python-mode . ((python-indent-offset . 4)
+                 (flycheck-python-flake8-executable . "python3")
+                 (flycheck-python-pylint-executable . "python3"))))
 #+END_SRC
 
 * MCP Helper Functions
@@ -45,6 +48,15 @@ This file manages environment configurations for isolated-pymcp.
                  `(("code" . ,code))
                  #'mcp-display-result)))
 
+(defun mcp-analyze-buffer ()
+  "Analyze current buffer with MultilspyLSP."
+  (interactive)
+  (let ((code (buffer-substring-no-properties (point-min) (point-max))))
+    (mcp-execute "multilspy" "analyze"
+                 `(("code" . ,code)
+                   ("language" . "python"))
+                 #'mcp-display-result)))
+
 (defun mcp-display-result (result)
   "Display RESULT in buffer."
   (with-current-buffer (get-buffer-create "*MCP Result*")
@@ -68,6 +80,23 @@ This file manages environment configurations for isolated-pymcp.
     "enableLinting": true,
     "enableTypeChecking": true
   },
-  "securityAnalysis": true
+  "securityAnalysis": true,
+  "autoCompleteEnabled": true
+}
+#+END_SRC
+
+* VSCode Configuration
+:PROPERTIES:
+:header-args: :tangle .vscode/settings.json
+:END:
+
+#+BEGIN_SRC json
+{
+  "python.linting.enabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "editor.formatOnSave": true,
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}"
+  }
 }
 #+END_SRC
