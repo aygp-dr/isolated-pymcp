@@ -1,0 +1,111 @@
+#+TITLE: isolated-pymcp
+#+AUTHOR: Aidan Pace
+#+EMAIL: apace@defrecord.com
+#+DATE: 2025-04-20
+
+A secure, isolated environment for exploring Python development with Model Context Protocol (MCP) and Language Server Protocol (LSP).
+
+** Overview
+
+This project creates an isolated container environment that combines MCP and LSP capabilities for Python development. By leveraging the complementary strengths of both protocols, we enable LLMs to access powerful code intelligence features while maintaining strict security boundaries.
+
+** Architecture
+
+#+BEGIN_SRC mermaid :file architecture.png
+graph TD
+    subgraph "Host System"
+        api_keys[API Keys]
+    end
+    
+    subgraph "Alpine Container"
+        subgraph "MCP Servers"
+            run_python[Pydantic Run-Python]
+            multilspy[MultilspyLSP]
+            pythonlsp[Python LSP Server]
+        end
+        
+        subgraph "Client Tools"
+            claude_cli[Claude Code CLI]
+            shell_scripts[Shell Scripts]
+            emacs[Emacs + mcp.el]
+        end
+        
+        subgraph "Python Algorithms"
+            algorithms[Test Algorithms]
+        end
+    end
+    
+    api_keys --> Alpine Container
+    run_python --> algorithms
+    multilspy --> pythonlsp
+    pythonlsp --> algorithms
+    
+    claude_cli --> run_python
+    claude_cli --> multilspy
+    shell_scripts --> run_python
+    shell_scripts --> multilspy
+    emacs --> run_python
+    emacs --> multilspy
+#+END_SRC
+
+** Security Model
+
+The project implements a principle of least access architecture:
+
+- Container isolation from host system
+- Non-root user execution within container
+- Limited port exposure
+- Controlled API access via environment variables
+- Clear security domain boundaries between components
+
+** Core Components
+
+- *Pydantic Run-Python*: Executes Python code via MCP
+- *MultilspyLSP*: Bridges LSP capabilities to MCP
+- *Python LSP Server*: Provides code intelligence (completion, analysis, diagnostics)
+- *Client Interfaces*: Multiple access methods with the same security model
+
+** Integration Points
+
+| Component      | Protocol | Function                                |
+|----------------|----------|----------------------------------------|
+| Run-Python     | MCP      | Code execution and output capture       |
+| MultilspyLSP   | MCP+LSP  | Code intelligence bridge               |
+| Python LSP     | LSP      | Static analysis and completion         |
+| Claude Code    | -        | AI-assisted analysis and exploration    |
+
+** Getting Started
+
+   #+BEGIN_SRC shell
+make init
+make .envrc
+   #+END_SRC
+
+   #+BEGIN_SRC shell
+   make build
+   make run
+   #+END_SRC
+
+   #+BEGIN_SRC shell
+   make test
+   #+END_SRC
+
+** Command Reference
+
+Run ~make~ for a full list of available commands.
+
+Key commands:
+- ~make test~ - Verify MCP server connectivity
+- ~make analyze ALGO=fibonacci~ - Analyze algorithm via MCP
+- ~make claude-analyze ALGO=fibonacci~ - Use Claude to analyze code
+
+** Project Goals
+
+1. Demonstrate secure integration between MCP and LSP
+2. Provide a reference architecture for isolated AI code analysis
+3. Enable exploration of Python algorithm implementations
+4. Support multiple client interfaces while maintaining security
+
+** License
+
+MIT License

@@ -1,0 +1,107 @@
+#+TITLE: Development Environment Setup
+#+AUTHOR: Aidan Pace
+#+EMAIL: apace@defrecord.com
+#+PROPERTY: header-args :mkdirp yes
+
+* Development Environment Configuration
+
+This file contains configurations for development environments and editor support.
+
+* Emacs Configuration
+:PROPERTIES:
+:header-args: :tangle .dir-locals.el
+:END:
+
+#+BEGIN_SRC emacs-lisp
+;; Project-specific Emacs settings
+((nil . ((fill-column . 100)
+         (indent-tabs-mode . nil)))
+ (org-mode . ((org-confirm-babel-evaluate . nil)))
+ (python-mode . ((python-indent-offset . 4)
+                 (flycheck-python-flake8-executable . "python3")
+                 (flycheck-python-pylint-executable . "python3")))
+ (sh-mode . ((sh-basic-offset . 2)
+             (sh-indentation . 2))))
+#+END_SRC
+
+* MCP Emacs Integration
+:PROPERTIES:
+:header-args: :tangle isolated-pymcp.el
+:END:
+
+#+BEGIN_SRC emacs-lisp
+;;; isolated-pymcp.el --- MCP integration for isolated-pymcp project
+
+;;; Commentary:
+;; This file provides helper functions for working with MCP in this project
+
+;;; Code:
+(require 'mcp)
+
+(defun isolated-pymcp-connect-servers ()
+  "Connect to all MCP servers defined in .envrc."
+  (interactive)
+  (mcp-add-server "run-python" (format "http://localhost:%s" 
+                                    (getenv "MCP_RUNPYTHON_PORT")))
+  (mcp-add-server "multilspy" (format "http://localhost:%s" 
+                                   (getenv "MCP_MULTILSPY_PORT")))
+  (message "Connected to MCP servers"))
+
+(defun isolated-pymcp-run-buffer ()
+  "Run current buffer using MCP run-python server."
+  (interactive)
+  (let ((code (buffer-substring-no-properties (point-min) (point-max))))
+    (mcp-execute "run-python" "run" 
+                 `(("code" . ,code))
+                 (lambda (result)
+                   (with-current-buffer (get-buffer-create "*MCP Result*")
+                     (erase-buffer)
+                     (insert result)
+                     (pop-to-buffer (current-buffer)))))))
+
+(provide 'isolated-pymcp)
+;;; isolated-pymcp.el ends here
+#+END_SRC
+
+* Claude Code Configuration
+:PROPERTIES:
+:header-args: :tangle .claude/preferences.json
+:END:
+
+#+BEGIN_SRC json
+{
+  "defaultModel": "claude-3-7-sonnet-20250219",
+  "defaultBehavior": {
+    "pythonInspection": {
+      "enableLinting": true,
+      "enableTypeChecking": true
+    },
+    "securityAnalysis": {
+      "checkIsolationBoundaries": true,
+      "analyzePrincipleOfLeastAccess": true
+    }
+  },
+  "autoCompleteEnabled": true,
+  "defaultLanguageServer": "pylsp"
+}
+#+END_SRC
+
+* VSCode Integration
+:PROPERTIES:
+:header-args: :tangle .vscode/settings.json
+:END:
+
+#+BEGIN_SRC json
+{
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.org": "org"
+  },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}"
+  }
+}
+#+END_SRC

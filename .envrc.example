@@ -1,0 +1,19 @@
+# API keys
+export GITHUB_TOKEN="your_github_token"
+export ANTHROPIC_API_KEY="your_anthropic_api_key"
+
+# Port configuration
+export MCP_RUNPYTHON_PORT=3001
+export MCP_MEMORY_PORT=3002
+export MCP_FILESYSTEM_PORT=3003
+export MCP_GITHUB_PORT=3004
+export MCP_MULTILSPY_PORT=3005
+export MCP_PYTHONLSP_PORT=3006
+
+# MCP server URLs
+export MCP_RUNPYTHON_URL="http://localhost:${MCP_RUNPYTHON_PORT}"
+export MCP_MULTILSPY_URL="http://localhost:${MCP_MULTILSPY_PORT}"
+
+# Container configuration
+export CONTAINER_NAME="isolated-pymcp"
+export IMAGE_NAME="isolated-pymcp"

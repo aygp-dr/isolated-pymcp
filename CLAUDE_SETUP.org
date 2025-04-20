@@ -1,0 +1,188 @@
+#+TITLE: CLAUDE_SETUP for isolated-pymcp
+#+AUTHOR: Aidan Pace
+#+EMAIL: apace@defrecord.com
+
+* Introduction
+
+This file contains all the necessary configurations for setting up the isolated-pymcp project.
+When tangled, it will create the following files:
+- CLAUDE.md
+- .claude/rules/coding-standards.md
+- .envrc.example
+
+To tangle these files, use: =C-c C-v t= in Emacs.
+
+* CLAUDE.md
+:PROPERTIES:
+:header-args: :tangle CLAUDE.md :mkdirp yes
+:END:
+
+#+BEGIN_SRC markdown
+# Claude Guidelines for isolated-pymcp
+
+This document outlines guidelines for Claude when assisting with development on the isolated-pymcp project.
+
+## Git Commit Standards
+
+### Conventional Commits
+
+All commits should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional trailer(s)]
+```
+
+**Types:**
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `build`: Changes that affect the build system or external dependencies
+- `ci`: Changes to CI configuration files and scripts
+
+**Examples:**
+```
+feat(mcp): add support for python-lsp-server
+fix(scripts): correct port handling in test script
+docs: update README with FreeBSD instructions
+```
+
+### Trailers vs. Co-author
+
+- Do NOT include co-author information in the commit message body
+- Use Git trailers for attribution using the `--trailer` flag:
+
+```bash
+git commit -m "feat: implement python-lsp integration" --trailer "Co-authored-by: Aidan Pace <apace@defrecord.com>"
+```
+
+Multiple trailers can be specified:
+
+```bash
+git commit -m "feat: implement MCP server" \
+  --trailer "Co-authored-by: Aidan Pace <apace@defrecord.com>" \
+  --trailer "Signed-off-by: Aidan Pace <apace@defrecord.com>"
+```
+
+## Code Structure Guidelines
+
+### Makefile and Scripts
+
+- Keep Makefile targets simple and focused
+- If a Makefile target has any cyclometric complexity, move the logic to a dedicated script
+- All scripts should be placed in the `scripts/` directory
+- Script file names should be kebab-case (e.g., `start-mcp-servers.sh`)
+
+### FreeBSD Compatibility
+
+- All scripts should use the following shebang line for maximum compatibility:
+
+```bash
+#!/usr/bin/env bash
+```
+
+- For scripts that require specific interpreters:
+
+```bash
+#!/usr/bin/env python3
+#!/usr/bin/env node
+```
+
+- Avoid assumptions about tool locations specific to Linux
+- Use command detection patterns:
+
+```bash
+DOCKER_CMD=$(command -v podman || command -v docker)
+JQ_CMD=$(command -v jq)
+```
+
+### Docker/Podman Usage
+
+- Support both Docker and Podman for container operations
+- Refer to containers by name rather than ID when possible
+- Ensure all port mappings are explicitly defined
+- Use volume mounts for persistent data
+#+END_SRC
+
+* Claude Rules Directory
+
+Before tangling the coding standards, let's make sure the directory exists.
+
+#+BEGIN_SRC shell :tangle no :results output
+mkdir -p .claude/rules
+#+END_SRC
+
+* .claude/rules/coding-standards.md
+:PROPERTIES:
+:header-args: :tangle .claude/rules/coding-standards.md :mkdirp yes
+:END:
+
+#+BEGIN_SRC markdown
+# Coding Standards
+
+## Git Commit Guidelines
+
+- Use [Conventional Commits](https://www.conventionalcommits.org/)
+- Follow the format: `<type>[optional scope]: <description>`
+- Keep the first line under 72 characters
+- Use the imperative mood ("add" not "adds" or "added")
+- Do not include collaborator information in commit message body
+- Use `--trailer` for attribution and signing
+
+## Script Development
+
+- All scripts must start with `#!/usr/bin/env <interpreter>` for FreeBSD compatibility
+- Place complex Makefile logic in dedicated scripts
+- Scripts should be executable: `chmod +x scripts/script-name.sh`
+- Include error handling and proper exit codes
+- Use shellcheck for shell script validation
+
+## FreeBSD Considerations
+
+- Do not assume Linux-specific paths or tools
+- Test compatibility with both Docker and Podman
+- Use `uname` to detect operating system when needed
+- Default to POSIX-compliant shell constructs
+- Verify all system commands exist before using them
+
+## Python Standards
+
+- Follow PEP 8 style guide
+- Use type hints where appropriate
+- Include docstrings for all functions and classes
+- Write unit tests for all significant functionality
+#+END_SRC
+
+* .envrc.example
+:PROPERTIES:
+:header-args: :tangle .envrc.example :mkdirp yes
+:END:
+
+#+BEGIN_SRC conf
+# API keys
+export GITHUB_TOKEN="your_github_token"
+export ANTHROPIC_API_KEY="your_anthropic_api_key"
+
+# Port configuration
+export MCP_RUNPYTHON_PORT=3001
+export MCP_MEMORY_PORT=3002
+export MCP_FILESYSTEM_PORT=3003
+export MCP_GITHUB_PORT=3004
+export MCP_MULTILSPY_PORT=3005
+export MCP_PYTHONLSP_PORT=3006
+
+# MCP server URLs
+export MCP_RUNPYTHON_URL="http://localhost:${MCP_RUNPYTHON_PORT}"
+export MCP_MULTILSPY_URL="http://localhost:${MCP_MULTILSPY_PORT}"
+
+# Container configuration
+export CONTAINER_NAME="isolated-pymcp"
+export IMAGE_NAME="isolated-pymcp"
+#+END_SRC
