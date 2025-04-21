@@ -8,17 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test MCP servers**: `make test` - Verifies all MCP servers are working
 - **Analyze algorithm**: `make analyze ALGO=algorithm_name` - Run analysis via MCP
 - **Direct Claude analysis**: `make claude-analyze ALGO=algorithm_name` - Local Claude analysis
-- **Run single Python test**: `python -m pytest tests/test_file.py::test_name -v`
+- **Run all tests**: `python -m pytest tests/` - Run all Python tests
+- **Single test**: `python -m pytest tests/test_file.py::test_name -v` - Run specific test
 - **Stop environment**: `make stop` - Stops and removes container
 
 ## Code Style Guidelines
-- **Python**: PEP 8 with type annotations, docstrings for all functions
-- **Shebang lines**: Use `#!/usr/bin/env [interpreter]` for compatibility
-- **Imports**: Group imports (stdlib → third-party → local) with blank lines
-- **Error handling**: Use explicit exception types, command detection for tools
-- **Naming**: kebab-case for scripts (e.g., `mcp-python-test.sh`)
+- **Python**: PEP 8 with Black (100 char line length), type annotations, docstrings
+- **Docstrings**: Google style with Args/Returns sections and complexity analysis
+- **Imports**: Group (stdlib → third-party → local) with blank line separation
+- **Error handling**: Use specific exception types, proper error propagation
+- **Naming**: snake_case for variables/functions, PascalCase for classes, kebab-case for scripts
+- **Testing**: pytest with parametrized tests, markers for slow/benchmark tests
+- **Shebang lines**: Use `#!/usr/bin/env python3` for compatibility
 - **Security**: No hardcoded credentials, use environment variables
-- **Docker/Podman**: Support both runtimes, explicit port mappings, named containers
 
 ## Git Commit Standards
 - Follow Conventional Commits: `<type>[scope]: <description>`
