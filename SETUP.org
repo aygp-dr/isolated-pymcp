@@ -1,0 +1,1120 @@
+#+TITLE: isolated-pymcp Setup
+#+AUTHOR: Aidan Pace
+#+EMAIL: apace@defrecord.com
+#+DATE: 2025-04-20
+#+OPTIONS: toc:3 num:t
+
+* Project Setup and Implementation
+
+This file contains all implementation code for the isolated-pymcp project.
+After tangling, all necessary files will be created for the project.
+
+* Table of Contents                                                   :TOC_3:
+:PROPERTIES:
+:CUSTOM_ID: toc
+:END:
+
+- [[#project-setup-and-implementation][Project Setup and Implementation]]
+- [[#container-infrastructure][Container Infrastructure]]
+  - [[#dockerfile][Dockerfile]]
+  - [[#docker-compose][Docker Compose]]
+- [[#mcp-servers][MCP Servers]]
+  - [[#start-scripts][Start Scripts]]
+  - [[#server-configuration][Server Configuration]]
+- [[#python-implementation][Python Implementation]]
+  - [[#algorithms][Algorithms]]
+  - [[#test-suite][Test Suite]]
+- [[#client-tools][Client Tools]]
+  - [[#shell-scripts][Shell Scripts]]
+  - [[#emacs-integration][Emacs Integration]]
+  - [[#claude-code-integration][Claude Code Integration]]
+- [[#system-diagrams][System Diagrams]]
+  - [[#architecture-diagram][Architecture Diagram]]
+  - [[#security-model-diagram][Security Model Diagram]]
+  - [[#integration-flow-diagram][Integration Flow Diagram]]
+
+* Container Infrastructure
+** Dockerfile
+
+The Dockerfile creates an Alpine-based container with all necessary tools.
+
+#+BEGIN_SRC dockerfile :tangle Dockerfile :mkdirp yes
+# isolated-pymcp Dockerfile
+# Secure, isolated environment for Python development with MCP and LSP
+
+FROM alpine:latest
+
+# Set up non-root user
+RUN adduser -D mcp && \
+    mkdir -p /home/mcp/data && \
+    chown -R mcp:mcp /home/mcp
+
+# Install core dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    nodejs \
+    npm \
+    git \
+    curl \
+    jq \
+    bash \
+    deno \
+    emacs-nox \
+    gcc \
+    python3-dev \
+    musl-dev
+
+# Switch to non-root user
+USER mcp
+WORKDIR /home/mcp
+
+# Install Python tools
+RUN pip install --user \
+    model-context-protocol \
+    python-lsp-server[all] \
+    debugpy \
+    pytest \
+    pytest-cov \
+    black \
+    isort \
+    mypy \
+    multilspy
+
+# Install Claude Code CLI (if available)
+RUN npm install -g @anthropic/claude-code || echo "Claude Code CLI not available, skipping"
+
+# Create necessary directories
+RUN mkdir -p /home/mcp/algorithms \
+             /home/mcp/scripts \
+             /home/mcp/data/memory \
+             /home/mcp/data/filesystem \
+             /home/mcp/data/github \
+             /home/mcp/analysis_results
+
+# Copy scripts
+COPY --chown=mcp:mcp scripts/ /home/mcp/scripts/
+RUN chmod +x /home/mcp/scripts/*.sh
+
+# Copy algorithms
+COPY --chown=mcp:mcp algorithms/ /home/mcp/algorithms/
+
+# Environment variables (default values)
+ENV MCP_RUNPYTHON_PORT=3001 \
+    MCP_MEMORY_PORT=3002 \
+    MCP_FILESYSTEM_PORT=3003 \
+    MCP_GITHUB_PORT=3004 \
+    MCP_MULTILSPY_PORT=3005
+
+# Expose ports for MCP servers
+EXPOSE 3001-3010
+
+# Healthcheck
+HEALTHCHECK --interval=60s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${MCP_RUNPYTHON_PORT}/health || exit 1
+
+# Entry point
+ENTRYPOINT ["/home/mcp/scripts/start-mcp-servers.sh"]
+#+END_SRC
+
+** Docker Compose
+
+Docker Compose file for easier deployment and configuration.
+
+#+BEGIN_SRC yaml :tangle docker-compose.yml :mkdirp yes
+version: '3.8'
+
+services:
+  isolated-pymcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: isolated-pymcp
+    container_name: isolated-pymcp
+    volumes:
+      - ./algorithms:/home/mcp/algorithms
+      - ./analysis_results:/home/mcp/analysis_results
+      - ./data:/home/mcp/data
+    ports:
+      - "${MCP_RUNPYTHON_PORT:-3001}:3001"
+      - "${MCP_MEMORY_PORT:-3002}:3002"
+      - "${MCP_FILESYSTEM_PORT:-3003}:3003"
+      - "${MCP_GITHUB_PORT:-3004}:3004"
+      - "${MCP_MULTILSPY_PORT:-3005}:3005"
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_RUNPYTHON_PORT=3001
+      - MCP_MEMORY_PORT=3002
+      - MCP_FILESYSTEM_PORT=3003
+      - MCP_GITHUB_PORT=3004
+      - MCP_MULTILSPY_PORT=3005
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+#+END_SRC
+
+* MCP Servers
+** Start Scripts
+
+Script to start all MCP servers.
+
+#+BEGIN_SRC bash :tangle scripts/start-mcp-servers.sh :mkdirp yes
+#!/usr/bin/env bash
+# Start MCP servers
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Starting MCP servers...${NC}"
+
+# Function to start a server
+start_server() {
+  local name=$1
+  local command=$2
+  local port=$3
+  
+  echo -e "${BLUE}Starting $name on port $port...${NC}"
+  mkdir -p /home/mcp/data/logs
+  $command > "/home/mcp/data/logs/${name}.log" 2>&1 &
+  echo $! > "/home/mcp/data/logs/${name}.pid"
+  echo -e "${GREEN}Started $name with PID $(cat /home/mcp/data/logs/${name}.pid)${NC}"
+  
+  # Wait for server to be ready
+  local retries=0
+  while ! curl -s "http://localhost:$port/health" > /dev/null 2>&1; do
+    if (( retries >= 10 )); then
+      echo "Warning: Unable to verify $name is healthy after 10 attempts"
+      break
+    fi
+    sleep 1
+    ((retries++))
+  done
+  
+  if (( retries < 10 )); then
+    echo -e "${GREEN}$name is ready${NC}"
+  fi
+}
+
+# Start Core MCP servers
+echo -e "${BLUE}Starting core MCP servers...${NC}"
+
+# Run Python MCP server
+start_server "run-python" "python -m model_context_protocol.run_python_server --port ${MCP_RUNPYTHON_PORT}" "${MCP_RUNPYTHON_PORT}"
+
+# Memory server
+start_server "memory" "python -m model_context_protocol.memory_server --port ${MCP_MEMORY_PORT}" "${MCP_MEMORY_PORT}"
+
+# Filesystem server
+start_server "filesystem" "python -m model_context_protocol.filesystem_server --port ${MCP_FILESYSTEM_PORT}" "${MCP_FILESYSTEM_PORT}"
+
+# GitHub server (if token is provided)
+if [ -n "${GITHUB_TOKEN}" ]; then
+  start_server "github" "python -m model_context_protocol.github_server --port ${MCP_GITHUB_PORT}" "${MCP_GITHUB_PORT}"
+fi
+
+# MultilspyLSP server
+start_server "multilspy" "python -m multilspy_lsp.server --port ${MCP_MULTILSPY_PORT}" "${MCP_MULTILSPY_PORT}"
+
+echo -e "${GREEN}All MCP servers started successfully${NC}"
+
+# Keep container running
+echo -e "${BLUE}Servers are running. Use Ctrl+C to stop.${NC}"
+tail -f /home/mcp/data/logs/*.log
+#+END_SRC
+
+Script to test MCP servers.
+
+#+BEGIN_SRC bash :tangle scripts/mcp-python-test.sh :mkdirp yes
+#!/usr/bin/env bash
+# Test MCP Python servers
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}=====================================${NC}"
+echo -e "${BLUE}MCP Python Tooling Test${NC}"
+echo -e "${BLUE}=====================================${NC}\n"
+
+# Configuration
+RUN_PYTHON_URL="http://localhost:${MCP_RUNPYTHON_PORT:-3001}"
+LSP_URL="http://localhost:${MCP_MULTILSPY_PORT:-3005}"
+TEMP_DIR="/tmp/mcp_python_test"
+
+# Create temporary directory
+mkdir -p $TEMP_DIR
+
+# Test Run-Python server
+test_run_python() {
+    echo -e "\n${BLUE}Testing Run-Python MCP Server...${NC}"
+    
+    # Create test Python file
+    cat > $TEMP_DIR/fibonacci.py << EOF
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+print([fibonacci(i) for i in range(10)])
+EOF
+    
+    echo -e "Sending test code to Run-Python server..."
+    
+    # Execute the code using the server
+    response=$(curl -s -X POST "$RUN_PYTHON_URL/execute" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"name\": \"run\",
+            \"parameters\": {
+                \"code\": $(cat $TEMP_DIR/fibonacci.py | jq -Rs .)
+            }
+        }")
+    
+    # Check response
+    if echo "$response" | jq -e '.result' > /dev/null; then
+        echo -e "${GREEN}✓ Run-Python server executed code successfully${NC}"
+        echo -e "Output:"
+        echo "$response" | jq -r '.result'
+        return 0
+    else
+        echo -e "${RED}✗ Run-Python server failed to execute code${NC}"
+        echo -e "Error response:"
+        echo "$response" | jq .
+        return 1
+    fi
+}
+
+# Test LSP server
+test_lsp() {
+    echo -e "\n${BLUE}Testing LSP MCP Server...${NC}"
+    
+    # Create test Python file with intentional code completion scenario
+    cat > $TEMP_DIR/completion_test.py << EOF
+def calculate_sum(a, b):
+    return a + b
+
+result = calculate_
+EOF
+    
+    echo -e "Requesting code completion from LSP server..."
+    
+    # Request completions at a specific position
+    response=$(curl -s -X POST "$LSP_URL/execute" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"name\": \"completion\",
+            \"parameters\": {
+                \"code\": $(cat $TEMP_DIR/completion_test.py | jq -Rs .),
+                \"language\": \"python\",
+                \"line\": 3,
+                \"character\": 17
+            }
+        }")
+    
+    # Check response
+    if echo "$response" | jq -e '.result' > /dev/null; then
+        echo -e "${GREEN}✓ LSP server returned completions${NC}"
+        echo -e "Suggestions:"
+        echo "$response" | jq '.result.items[].label' 2>/dev/null || echo "No completion items found"
+        return 0
+    else
+        echo -e "${RED}✗ LSP server failed to provide completions${NC}"
+        echo -e "Error response:"
+        echo "$response" | jq .
+        return 1
+    fi
+}
+
+# Test Python code analysis
+test_code_analysis() {
+    echo -e "\n${BLUE}Testing Python Code Analysis...${NC}"
+    
+    # Create test Python file with a bug
+    cat > $TEMP_DIR/analysis_test.py << EOF
+def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n-1)
+
+# Bug: Calling with a string instead of an integer
+result = factorial("5")
+print(result)
+EOF
+    
+    echo -e "Requesting code analysis from LSP server..."
+    
+    # Request diagnostics
+    response=$(curl -s -X POST "$LSP_URL/execute" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"name\": \"analyze\",
+            \"parameters\": {
+                \"code\": $(cat $TEMP_DIR/analysis_test.py | jq -Rs .),
+                \"language\": \"python\"
+            }
+        }")
+    
+    # Check response
+    if echo "$response" | jq -e '.result' > /dev/null; then
+        echo -e "${GREEN}✓ LSP server analyzed code${NC}"
+        echo -e "Diagnostics:"
+        echo "$response" | jq '.result.diagnostics[]?.message' 2>/dev/null || echo "No diagnostics found"
+        return 0
+    else
+        echo -e "${RED}✗ LSP server failed to analyze code${NC}"
+        echo -e "Error response:"
+        echo "$response" | jq .
+        return 1
+    fi
+}
+
+# Run the tests
+echo -e "${BLUE}Starting MCP Python tooling tests...${NC}"
+
+# Run tests and track results
+PASSED=0
+FAILED=0
+
+if test_run_python; then
+    PASSED=$((PASSED+1))
+else
+    FAILED=$((FAILED+1))
+fi
+
+if test_lsp; then
+    PASSED=$((PASSED+1))
+else
+    FAILED=$((FAILED+1))
+fi
+
+if test_code_analysis; then
+    PASSED=$((PASSED+1))
+else
+    FAILED=$((FAILED+1))
+fi
+
+# Summary
+echo -e "\n${BLUE}=====================================${NC}"
+echo -e "${BLUE}Test Summary${NC}"
+echo -e "${BLUE}=====================================${NC}"
+echo -e "Tests run: $((PASSED+FAILED))"
+echo -e "${GREEN}Passed: $PASSED${NC}"
+echo -e "${RED}Failed: $FAILED${NC}"
+
+if [ $FAILED -eq 0 ]; then
+    echo -e "\n${GREEN}All MCP Python tooling tests passed successfully!${NC}"
+    exit 0
+else
+    echo -e "\n${RED}Some tests failed.${NC}"
+    echo -e "Check the output above for details."
+    exit 1
+fi
+#+END_SRC
+
+Script to analyze algorithms with Claude.
+
+#+BEGIN_SRC bash :tangle scripts/analyze-with-claude.sh :mkdirp yes
+#!/usr/bin/env bash
+# Analyze algorithm with Claude Code
+
+set -e
+
+# Colors for output
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+ALGORITHM=$1
+CODE_FILE="${ALGORITHM:-fibonacci}.py"
+RUN_PYTHON_URL="http://localhost:${MCP_RUNPYTHON_PORT:-3001}"
+LSP_URL="http://localhost:${MCP_MULTILSPY_PORT:-3005}"
+OUTPUT_DIR="analysis_results"
+
+# Check if algorithm parameter is provided
+if [ -z "$ALGORITHM" ]; then
+    echo "Usage: $0 <algorithm>"
+    echo "Example: $0 fibonacci"
+    exit 1
+fi
+
+# Check if code file exists
+if [ ! -f "algorithms/$CODE_FILE" ]; then
+    echo -e "${RED}Error: File algorithms/$CODE_FILE not found${NC}"
+    echo "Available algorithms:"
+    ls -1 algorithms/ | grep -E "\.py$" | sed 's/\.py$//'
+    exit 1
+fi
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
+
+echo -e "${BLUE}Analyzing $ALGORITHM implementation...${NC}"
+
+# Step 1: Get LSP analysis
+echo -e "${BLUE}Getting LSP analysis...${NC}"
+curl -s -X POST "$LSP_URL/execute" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"name\": \"analyze\",
+        \"parameters\": {
+            \"code\": $(cat "algorithms/$CODE_FILE" | jq -Rs .),
+            \"language\": \"python\"
+        }
+    }" | jq '.result' > "$OUTPUT_DIR/${ALGORITHM}_lsp.json"
+
+echo -e "${GREEN}LSP analysis saved to $OUTPUT_DIR/${ALGORITHM}_lsp.json${NC}"
+
+# Step 2: Execute code
+echo -e "${BLUE}Executing code...${NC}"
+curl -s -X POST "$RUN_PYTHON_URL/execute" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"name\": \"run\",
+        \"parameters\": {
+            \"code\": $(cat "algorithms/$CODE_FILE" | jq -Rs .)
+        }
+    }" | jq '.result' > "$OUTPUT_DIR/${ALGORITHM}_execution.json"
+
+echo -e "${GREEN}Execution results saved to $OUTPUT_DIR/${ALGORITHM}_execution.json${NC}"
+
+# Step 3: Create prompt for Claude
+echo -e "${BLUE}Creating analysis prompt...${NC}"
+
+cat > "$OUTPUT_DIR/${ALGORITHM}_prompt.md" << EOF
+# Code Analysis Request
+
+Please analyze this Python implementation of $ALGORITHM.
+
+## Source Code
+\`\`\`python
+$(cat "algorithms/$CODE_FILE")
+\`\`\`
+
+## LSP Analysis
+\`\`\`json
+$(cat "$OUTPUT_DIR/${ALGORITHM}_lsp.json")
+\`\`\`
+
+## Execution Results
+\`\`\`
+$(cat "$OUTPUT_DIR/${ALGORITHM}_execution.json")
+\`\`\`
+
+## Analysis Questions
+
+1. What is the algorithmic complexity of this implementation?
+2. Are there any bugs or inefficiencies in the code?
+3. How could this implementation be improved?
+4. What are the trade-offs between different approaches to this algorithm?
+5. Is there anything interesting or unique about this implementation?
+EOF
+
+echo -e "${GREEN}Analysis prompt saved to $OUTPUT_DIR/${ALGORITHM}_prompt.md${NC}"
+
+# Step 4: Run Claude Code CLI (if available)
+if command -v claude-code &> /dev/null; then
+    echo -e "${BLUE}Running Claude Code CLI...${NC}"
+    claude-code analyze \
+        --prompt-file "$OUTPUT_DIR/${ALGORITHM}_prompt.md" \
+        --output-file "$OUTPUT_DIR/${ALGORITHM}_analysis.md"
+    
+    echo -e "${GREEN}Analysis complete! Results saved to $OUTPUT_DIR/${ALGORITHM}_analysis.md${NC}"
+else
+    echo -e "${YELLOW}Claude Code CLI not found.${NC}"
+    echo -e "To analyze manually, use the prompt at: $OUTPUT_DIR/${ALGORITHM}_prompt.md"
+fi
+
+echo -e "${GREEN}Analysis process complete${NC}"
+#+END_SRC
+
+** Server Configuration
+
+Python configuration for MultilspyLSP.
+
+#+BEGIN_SRC python :tangle config/multilspy_config.py :mkdirp yes
+"""
+Configuration for MultilspyLSP server
+"""
+import os
+import sys
+
+# Server configuration
+SERVER_CONFIG = {
+    "port": int(os.environ.get("MCP_MULTILSPY_PORT", 3005)),
+    "host": "0.0.0.0",
+    "log_level": "info",
+    "timeout": 30,
+}
+
+# Language server configurations
+LANGUAGE_SERVERS = {
+    "python": {
+        "command": ["pylsp"],
+        "settings": {
+            "pylsp": {
+                "plugins": {
+                    "pycodestyle": {
+                        "enabled": True,
+                        "maxLineLength": 100
+                    },
+                    "pyflakes": {"enabled": True},
+                    "pylint": {"enabled": True},
+                    "rope_completion": {"enabled": True},
+                    "jedi_completion": {"enabled": True},
+                    "jedi_definition": {"enabled": True},
+                    "jedi_hover": {"enabled": True},
+                    "jedi_references": {"enabled": True},
+                    "jedi_signature_help": {"enabled": True},
+                    "jedi_symbols": {"enabled": True},
+                }
+            }
+        }
+    }
+}
+
+# Additional server settings
+ADDITIONAL_SETTINGS = {
+    "workspace_root": "/home/mcp",
+    "max_workers": 4,
+    "timeout_seconds": 30,
+}
+#+END_SRC
+
+* Python Implementation
+** Algorithms
+
+Fibonacci implementation.
+
+#+BEGIN_SRC python :tangle algorithms/fibonacci.py :mkdirp yes
+#!/usr/bin/env python3
+"""
+Implementations of the Fibonacci sequence
+
+This module provides various implementations of the Fibonacci sequence
+to demonstrate different approaches and their performance characteristics.
+"""
+from functools import lru_cache
+import time
+from typing import List, Generator
+
+
+def fib_recursive(n: int) -> int:
+    """
+    Recursive implementation of Fibonacci.
+    
+    Time complexity: O(2^n)
+    Space complexity: O(n) due to recursion stack
+    
+    Args:
+        n: Position in the Fibonacci sequence (0-indexed)
+        
+    Returns:
+        The nth Fibonacci number
+    """
+    if n <= 1:
+        return n
+    return fib_recursive(n-1) + fib_recursive(n-2)
+
+
+@lru_cache(maxsize=None)
+def fib_memoized(n: int) -> int:
+    """
+    Memoized recursive implementation of Fibonacci.
+    
+    Time complexity: O(n)
+    Space complexity: O(n)
+    
+    Args:
+        n: Position in the Fibonacci sequence (0-indexed)
+        
+    Returns:
+        The nth Fibonacci number
+    """
+    if n <= 1:
+        return n
+    return fib_memoized(n-1) + fib_memoized(n-2)
+
+
+def fib_iterative(n: int) -> int:
+    """
+    Iterative implementation of Fibonacci.
+    
+    Time complexity: O(n)
+    Space complexity: O(1)
+    
+    Args:
+        n: Position in the Fibonacci sequence (0-indexed)
+        
+    Returns:
+        The nth Fibonacci number
+    """
+    if n <= 1:
+        return n
+    
+    a, b = 0, 1
+    for _ in range(2, n+1):
+        a, b = b, a + b
+    return b
+
+
+def fib_generator(n: int) -> Generator[int, None, None]:
+    """
+    Generator implementation of Fibonacci sequence.
+    
+    Yields the Fibonacci sequence up to the nth number.
+    
+    Args:
+        n: Number of Fibonacci numbers to generate
+        
+    Yields:
+        Fibonacci numbers in sequence
+    """
+    a, b = 0, 1
+    yield a
+    
+    if n > 0:
+        yield b
+        
+    for _ in range(2, n+1):
+        a, b = b, a + b
+        yield b
+
+
+def benchmark_fibonacci(n: int) -> None:
+    """
+    Benchmark different Fibonacci implementations.
+    
+    Args:
+        n: Position in the Fibonacci sequence to calculate
+    """
+    print(f"Benchmarking Fibonacci implementations for n={n}")
+    
+    # Only benchmark recursive for small values due to exponential growth
+    if n <= 30:
+        start = time.time()
+        result = fib_recursive(n)
+        end = time.time()
+        print(f"Recursive: {result} (Time: {end - start:.6f}s)")
+    else:
+        print("Recursive implementation skipped for large n (would take too long)")
+    
+    # Memoized version
+    start = time.time()
+    result = fib_memoized(n)
+    end = time.time()
+    print(f"Memoized:  {result} (Time: {end - start:.6f}s)")
+    
+    # Iterative version
+    start = time.time()
+    result = fib_iterative(n)
+    end = time.time()
+    print(f"Iterative: {result} (Time: {end - start:.6f}s)")
+    
+    # Generator version (just time to generate full sequence)
+    start = time.time()
+    result = list(fib_generator(n))[-1]
+    end = time.time()
+    print(f"Generator: {result} (Time: {end - start:.6f}s)")
+
+
+if __name__ == "__main__":
+    # Test small value
+    print("First 10 Fibonacci numbers:")
+    print(list(fib_generator(9)))
+    
+    # Benchmark
+    benchmark_fibonacci(35)
+#+END_SRC
+
+* Test Suite
+
+Test file for Fibonacci implementations.
+
+#+BEGIN_SRC python :tangle tests/test_fibonacci.py :mkdirp yes
+"""
+Tests for Fibonacci implementations
+"""
+import pytest
+from algorithms.fibonacci import (
+    fib_recursive,
+    fib_memoized,
+    fib_iterative,
+    fib_generator
+)
+
+
+# Known Fibonacci numbers for testing
+FIB_NUMBERS = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+
+
+@pytest.mark.parametrize("n, expected", [
+    (0, 0),
+    (1, 1),
+    (2, 1),
+    (3, 2),
+    (4, 3),
+    (5, 5),
+    (6, 8),
+    (7, 13),
+    (8, 21),
+    (9, 34),
+    (10, 55),
+])
+def test_fib_recursive(n, expected):
+    """Test recursive implementation of Fibonacci."""
+    assert fib_recursive(n) == expected
+
+
+@pytest.mark.parametrize("n, expected", [
+    (0, 0),
+    (1, 1),
+    (2, 1),
+    (10, 55),
+    (20, 6765),
+])
+def test_fib_memoized(n, expected):
+    """Test memoized implementation of Fibonacci."""
+    assert fib_memoized(n) == expected
+
+
+@pytest.mark.parametrize("n, expected", [
+    (0, 0),
+    (1, 1),
+    (2, 1),
+    (10, 55),
+    (20, 6765),
+])
+def test_fib_iterative(n, expected):
+    """Test iterative implementation of Fibonacci."""
+    assert fib_iterative(n) == expected
+
+
+def test_fib_generator():
+    """Test generator implementation of Fibonacci."""
+    # Test for n=10
+    n = 10
+    fib_seq = list(fib_generator(n))
+    
+    # Check sequence length
+    assert len(fib_seq) == n + 1
+    
+    # Check sequence values
+    for i, val in enumerate(fib_seq):
+        if i < len(FIB_NUMBERS):
+            assert val == FIB_NUMBERS[i]
+
+
+def test_fib_implementations_consistency():
+    """Test that all implementations produce the same results."""
+    for n in range(10):
+        recursive = fib_recursive(n)
+        memoized = fib_memoized(n)
+        iterative = fib_iterative(n)
+        generator = list(fib_generator(n))[-1]
+        
+        assert recursive == memoized == iterative == generator
+
+
+@pytest.mark.parametrize("func", [
+    fib_memoized,
+    fib_iterative,
+])
+def test_fibonacci_large_n(func):
+    """Test Fibonacci implementations with larger inputs."""
+    # Skip recursive implementation for large n as it would be too slow
+    n = 35
+    assert func(n) == 9227465
+#+END_SRC
+
+* Client Tools
+** Emacs Integration
+
+Emacs integration file for isolated-pymcp.
+
+#+BEGIN_SRC emacs-lisp :tangle emacs/isolated-pymcp.el :mkdirp yes
+;;; isolated-pymcp.el --- MCP integration for isolated-pymcp
+
+;;; Commentary:
+;; This file provides MCP integration for the isolated-pymcp project.
+
+;;; Code:
+(require 'mcp)
+
+(defgroup isolated-pymcp nil
+  "Settings for isolated-pymcp integration."
+  :group 'tools)
+
+(defcustom isolated-pymcp-run-python-url "http://localhost:3001"
+  "URL for the Run-Python MCP server."
+  :type 'string
+  :group 'isolated-pymcp)
+
+(defcustom isolated-pymcp-multilspy-url "http://localhost:3005"
+  "URL for the MultilspyLSP MCP server."
+  :type 'string
+  :group 'isolated-pymcp)
+
+(defun isolated-pymcp-connect-servers ()
+  "Connect to all MCP servers defined for isolated-pymcp."
+  (interactive)
+  (mcp-add-server "run-python" isolated-pymcp-run-python-url)
+  (mcp-add-server "multilspy" isolated-pymcp-multilspy-url)
+  (message "Connected to isolated-pymcp MCP servers"))
+
+(defun isolated-pymcp-run-buffer ()
+  "Run current buffer using MCP run-python server."
+  (interactive)
+  (let ((code (buffer-substring-no-properties (point-min) (point-max))))
+    (mcp-execute "run-python" "run" 
+                 `(("code" . ,code))
+                 (lambda (result)
+                   (with-current-buffer (get-buffer-create "*MCP Run Result*")
+                     (erase-buffer)
+                     (insert "# Python Execution Result\n\n")
+                     (insert "```\n")
+                     (insert result)
+                     (insert "\n```\n")
+                     (goto-char (point-min))
+                     (pop-to-buffer (current-buffer)))))))
+
+(defun isolated-pymcp-analyze-buffer ()
+  "Analyze current buffer with MultilspyLSP."
+  (interactive)
+  (let ((code (buffer-substring-no-properties (point-min) (point-max))))
+    (mcp-execute "multilspy" "analyze"
+                 `(("code" . ,code)
+                   ("language" . "python"))
+                 (lambda (result)
+                   (with-current-buffer (get-buffer-create "*MCP Analysis*")
+                     (erase-buffer)
+                     (insert "# Python Analysis Result\n\n")
+                     (when (assoc 'diagnostics result)
+                       (insert "## Diagnostics\n\n")
+                       (dolist (diag (cdr (assoc 'diagnostics result)))
+                         (let ((range (cdr (assoc 'range diag)))
+                               (message (cdr (assoc 'message diag)))
+                               (severity (cdr (assoc 'severity diag))))
+                           (insert (format "- %s: %s (Line %s)\n"
+                                          (cond
+                                           ((= severity 1) "Error")
+                                           ((= severity 2) "Warning")
+                                           ((= severity 3) "Info")
+                                           ((= severity 4) "Hint")
+                                           (t "Issue"))
+                                          message
+                                          (cdr (assoc 'line (cdr (assoc 'start range)))))))))
+                     (goto-char (point-min))
+                     (pop-to-buffer (current-buffer)))))))
+
+(defun isolated-pymcp-get-completions ()
+  "Get Python completions at point using LSP via MCP."
+  (interactive)
+  (let* ((code (buffer-substring-no-properties (point-min) (point-max)))
+         (line (1- (line-number-at-pos)))  ; LSP uses zero-based line numbers
+         (col (current-column))
+         (buffer-name "*MCP Completions*"))
+    (mcp-execute "multilspy" "completion"
+                 `(("code" . ,code)
+                   ("language" . "python")
+                   ("line" . ,line)
+                   ("character" . ,col))
+                 (lambda (result)
+                   (with-current-buffer (get-buffer-create buffer-name)
+                     (erase-buffer)
+                     (insert "# Completion Results\n\n")
+                     (when (assoc 'items result)
+                       (dolist (item (cdr (assoc 'items result)))
+                         (let ((label (cdr (assoc 'label item)))
+                               (kind (cdr (assoc 'kind item)))
+                               (detail (cdr (assoc 'detail item))))
+                           (insert (format "- `%s` (%s)\n  %s\n"
+                                          label
+                                          (cond
+                                           ((= kind 2) "Method")
+                                           ((= kind 3) "Function")
+                                           ((= kind 6) "Variable")
+                                           ((= kind 7) "Class")
+                                           (t "Symbol"))
+                                          (or detail ""))))))
+                     (goto-char (point-min))
+                     (pop-to-buffer (current-buffer)))))))
+
+(defun isolated-pymcp-setup ()
+  "Set up the isolated-pymcp environment."
+  (interactive)
+  (isolated-pymcp-connect-servers)
+  (message "isolated-pymcp environment set up successfully"))
+
+;; Key bindings
+(defvar isolated-pymcp-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-r") 'isolated-pymcp-run-buffer)
+    (define-key map (kbd "C-c C-a") 'isolated-pymcp-analyze-buffer)
+    (define-key map (kbd "C-c C-c") 'isolated-pymcp-get-completions)
+    map)
+  "Keymap for isolated-pymcp-mode.")
+
+;;;###autoload
+(define-minor-mode isolated-pymcp-mode
+  "Minor mode for isolated-pymcp MCP integration."
+  :lighter " iso-mcp"
+  :keymap isolated-pymcp-mode-map
+  (if isolated-pymcp-mode
+      (isolated-pymcp-setup)
+    (message "isolated-pymcp-mode disabled")))
+
+(provide 'isolated-pymcp)
+;;; isolated-pymcp.el ends here
+#+END_SRC
+
+** Claude Code Integration
+
+Claude Code configuration and preferences.
+
+#+BEGIN_SRC json :tangle .claude/preferences.json :mkdirp yes
+{
+  "defaultModel": "claude-3-7-sonnet-20250219",
+  "modelOptions": {
+    "temperature": 0.7,
+    "maxTokens": 4096
+  },
+  "pythonInspection": {
+    "enableLinting": true,
+    "enableTypeChecking": true,
+    "showHints": true,
+    "showWarnings": true,
+    "showErrors": true
+  },
+  "securityAnalysis": {
+    "checkIsolationBoundaries": true,
+    "analyzePrincipleOfLeastAccess": true,
+    "checkEnvironmentVariables": true
+  },
+  "autoCompleteEnabled": true,
+  "memoryEnabled": true,
+  "useGitMetadata": true,
+  "features": {
+    "fileSearch": true,
+    "codeAnalysis": true,
+    "dependencyManagement": true
+  }
+}
+#+END_SRC
+
+* Python Requirements File
+
+#+BEGIN_SRC text :tangle requirements.txt :mkdirp yes
+# Core dependencies
+model-context-protocol>=0.5.0
+python-lsp-server[all]>=1.7.0
+debugpy>=1.6.0
+multilspy>=0.3.0
+
+# Testing dependencies
+pytest>=7.3.1
+pytest-cov>=4.1.0
+
+# Development tools
+black>=23.3.0
+isort>=5.12.0
+mypy>=1.2.0
+flake8>=6.0.0
+#+END_SRC
+
+* Project Configuration File
+
+#+BEGIN_SRC ini :tangle pyproject.toml :mkdirp yes
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isolated-pymcp"
+version = "0.1.0"
+description = "A secure, isolated environment for Python development with MCP and LSP"
+authors = [
+    {name = "Aidan Pace", email = "apace@defrecord.com"}
+]
+readme = "README.org"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/aygp-dr/isolated-pymcp"
+"Bug Tracker" = "https://github.com/aygp-dr/isolated-pymcp/issues"
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+#+END_SRC
+
+* VSCode Configuration
+
+#+BEGIN_SRC json :tangle .vscode/settings.json :mkdirp yes
+{
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--line-length", "100"],
+    "editor.formatOnSave": true,
+    "editor.rulers": [100],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "files.associations": {
+        "*.mmd": "mermaid",
+        "*.org": "org"
+    }
+}
+#+END_SRC

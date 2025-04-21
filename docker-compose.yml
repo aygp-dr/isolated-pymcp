@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  isolated-pymcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: isolated-pymcp
+    container_name: isolated-pymcp
+    volumes:
+      - ./algorithms:/home/mcp/algorithms
+      - ./analysis_results:/home/mcp/analysis_results
+      - ./data:/home/mcp/data
+    ports:
+      - "${MCP_RUNPYTHON_PORT:-3001}:3001"
+      - "${MCP_MEMORY_PORT:-3002}:3002"
+      - "${MCP_FILESYSTEM_PORT:-3003}:3003"
+      - "${MCP_GITHUB_PORT:-3004}:3004"
+      - "${MCP_MULTILSPY_PORT:-3005}:3005"
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_RUNPYTHON_PORT=3001
+      - MCP_MEMORY_PORT=3002
+      - MCP_FILESYSTEM_PORT=3003
+      - MCP_GITHUB_PORT=3004
+      - MCP_MULTILSPY_PORT=3005
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

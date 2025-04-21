@@ -4,5 +4,18 @@ emacs/mcp-helpers.el linguist-generated=true
 .claude/preferences.json linguist-generated=true
 .vscode/settings.json linguist-generated=true
 
+# Generated files from SETUP.org
+Dockerfile linguist-generated=true
+docker-compose.yml linguist-generated=true
+algorithms/*.py linguist-generated=true
+config/multilspy_config.py linguist-generated=true
+emacs/isolated-pymcp.el linguist-generated=true
+scripts/*.sh linguist-generated=true
+tests/test_*.py linguist-generated=true
+requirements.txt linguist-generated=true
+pyproject.toml linguist-generated=true
+pytest.ini linguist-generated=true
+diagrams/*.mmd linguist-generated=true
+
 # Org files
 *.org diff=org

@@ -1,9 +1,27 @@
 {
   "defaultModel": "claude-3-7-sonnet-20250219",
+  "modelOptions": {
+    "temperature": 0.7,
+    "maxTokens": 4096
+  },
   "pythonInspection": {
     "enableLinting": true,
-    "enableTypeChecking": true
+    "enableTypeChecking": true,
+    "showHints": true,
+    "showWarnings": true,
+    "showErrors": true
   },
-  "securityAnalysis": true,
-  "autoCompleteEnabled": true
+  "securityAnalysis": {
+    "checkIsolationBoundaries": true,
+    "analyzePrincipleOfLeastAccess": true,
+    "checkEnvironmentVariables": true
+  },
+  "autoCompleteEnabled": true,
+  "memoryEnabled": true,
+  "useGitMetadata": true,
+  "features": {
+    "fileSearch": true,
+    "codeAnalysis": true,
+    "dependencyManagement": true
+  }
 }

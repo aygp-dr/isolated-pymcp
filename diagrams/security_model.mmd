@@ -1,0 +1,70 @@
+graph TD
+    subgraph "Host System"
+        host[Host Machine]
+        env_github[GITHUB_TOKEN]
+        env_anthropic[ANTHROPIC_API_KEY]
+    end
+    
+    subgraph "Alpine Container"
+        alpine[Alpine Linux]
+        
+        subgraph "User Space"
+            style mcp_user fill:#efe,stroke:#6a6,stroke-width:2px
+            mcp_user[Non-root MCP User]
+            
+            subgraph "Isolated Execution"
+                style isolatedExecution fill:#fee,stroke:#f66,stroke-width:2px
+                
+                subgraph "MCP Servers"
+                    run_python[Run-Python]
+                    multilspy[MultilspyLSP]
+                    memory[Memory Server]
+                    filesystem[Filesystem Server]
+                    github[GitHub Server]
+                end
+                
+                subgraph "Data Storage"
+                    data_memory[Memory Data]
+                    data_filesystem[Filesystem Data]
+                    data_logs[Logs]
+                end
+            end
+        end
+    end
+    
+    subgraph "External Services"
+        anthropic_api[Anthropic API]
+        github_api[GitHub API]
+    end
+    
+    %% Security boundaries
+    host -->|Container Isolation| alpine
+    alpine -->|User Isolation| mcp_user
+    mcp_user -->|Process Isolation| run_python
+    mcp_user -->|Process Isolation| multilspy
+    
+    %% Data access
+    run_python -->|Controlled Access| data_filesystem
+    memory -->|Controlled Access| data_memory
+    run_python -->|Generate| data_logs
+    multilspy -->|Generate| data_logs
+    
+    %% External access with credentials
+    env_github -->|Restricted API Access| github
+    github -->|Secure API Calls| github_api
+    env_anthropic -->|Restricted API Access| anthropic_api
+    
+    %% Port exposure
+    run_python -->|"Port 3001 (Restricted)"| host
+    multilspy -->|"Port 3005 (Restricted)"| host
+    
+%% Legend
+    classDef container fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef server fill:#bbf,stroke:#333,stroke-width:1px;
+    classDef storage fill:#fbb,stroke:#333,stroke-width:1px;
+    classDef env fill:#fff,stroke:#333,stroke-dasharray: 5 5;
+    
+    class host,alpine container;
+    class run_python,multilspy,memory,filesystem,github server;
+    class data_memory,data_filesystem,data_logs storage;
+    class env_github,env_anthropic env;

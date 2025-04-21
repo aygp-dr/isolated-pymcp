@@ -1,0 +1,116 @@
+graph TD
+    subgraph "Host System (FreeBSD/Docker)"
+        host[Host Machine]
+        env_github[GITHUB_TOKEN]
+        env_anthropic[ANTHROPIC_API_KEY]
+    end
+    
+    subgraph "Alpine Container"
+        alpine[Alpine Linux]
+        
+        subgraph "Core Tools"
+            python[Python 3]
+            uv[uv Package Manager]
+            node[Node.js]
+            npm[npm]
+            deno[Deno]
+            emacs[Emacs]
+            claude_code[Claude Code]
+            jq[jq]
+        end
+        
+        subgraph "MCP Clients" 
+            claude_cli[Claude Code CLI]
+            shell_script[Shell Script w/ jq]
+            emacs_mcp[mcp.el]
+            quickstart[MCP Quickstart]
+        end
+        
+        subgraph "MCP Servers"
+            subgraph "Isolated Security Domain"
+                style isolatedDomain fill:#fee,stroke:#f66,stroke-width:2px
+                memory[Memory Server]
+                filesystem[Filesystem Server]
+                run_python[Pydantic Run-Python]
+                github[GitHub Server]
+            end
+            
+            subgraph "Python Debug Tools"
+                style debugTools fill:#efe,stroke:#6a6,stroke-width:2px
+                multilspy[MultilspyLSP]
+                python_lsp[Python LSP Server]
+                pyiodide[Pyiodide Server]
+                debugpy[debugpy Server]
+            end
+        end
+    end
+    
+    subgraph "External Services"
+        anthropic_api[Anthropic API]
+        github_api[GitHub API]
+    end
+    
+    %% Connections
+    host --> alpine
+    env_github --> github
+    env_anthropic --> claude_cli
+    
+    alpine --> python
+    alpine --> uv
+    alpine --> node
+    alpine --> npm
+    alpine --> deno
+    alpine --> emacs
+    alpine --> claude_code
+    alpine --> jq
+    
+    python --> run_python
+    python --> multilspy
+    python --> python_lsp
+    deno --> pyiodide
+    python --> debugpy
+    
+    %% Client connections
+    claude_code --> claude_cli
+    jq --> shell_script
+    emacs --> emacs_mcp
+    
+    %% MCP server relationships  
+    memory --- filesystem
+    memory --- run_python
+    filesystem --- run_python
+    github --- run_python
+    
+    multilspy --- python_lsp
+    multilspy --- debugpy
+    
+    %% External connections
+    github_api -.-> github
+    anthropic_api -.-> claude_cli
+    
+    %% Principle of least access
+    claude_cli --> run_python
+    claude_cli --> multilspy
+    shell_script --> run_python
+    emacs_mcp --> multilspy
+    emacs_mcp --> run_python
+    
+    %% Debugging flow
+    debugpy --> run_python
+    python_lsp --> run_python
+    
+    classDef container fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef service fill:#bbf,stroke:#333,stroke-width:1px;
+    classDef tool fill:#bfb,stroke:#333,stroke-width:1px;
+    classDef client fill:#fbf,stroke:#333,stroke-width:1px;
+    classDef server fill:#fbb,stroke:#333,stroke-width:1px;
+    classDef debug fill:#afa,stroke:#3a3,stroke-width:1px;
+    classDef env fill:#fff,stroke:#333,stroke-dasharray: 5 5;
+    
+    class host,alpine container;
+    class python,uv,node,npm,deno,emacs,claude_code,jq tool;
+    class claude_cli,shell_script,emacs_mcp,quickstart client;
+    class memory,filesystem,github,run_python,multilspy,python_lsp,pyiodide,debugpy server;
+    class multilspy,python_lsp,pyiodide,debugpy debug;
+    class anthropic_api,github_api service;
+    class env_github,env_anthropic env;

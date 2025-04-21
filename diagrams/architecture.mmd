@@ -1,0 +1,52 @@
+graph TD
+    subgraph "Host System"
+        api_keys[API Keys]
+    end
+    
+    subgraph "Alpine Container"
+        subgraph "MCP Servers"
+            run_python[Pydantic Run-Python]
+            multilspy[MultilspyLSP]
+            pythonlsp[Python LSP Server]
+            memory[Memory Server]
+            filesystem[Filesystem Server]
+            github[GitHub Server]
+        end
+        
+        subgraph "Client Tools"
+            claude_cli[Claude Code CLI]
+            shell_scripts[Shell Scripts]
+            emacs[Emacs + mcp.el]
+        end
+        
+        subgraph "Python Algorithms"
+            fibonacci[Fibonacci]
+            factorial[Factorial]
+            primes[Prime Numbers]
+            tests[Test Suite]
+        end
+    end
+    
+    api_keys --> Alpine Container
+    
+    %% MCP Server connections
+    run_python --> algorithms
+    multilspy --> pythonlsp
+    pythonlsp --> algorithms
+    memory --> run_python
+    filesystem --> run_python
+    github --> run_python
+    
+    %% Client connections
+    claude_cli --> run_python
+    claude_cli --> multilspy
+    shell_scripts --> run_python
+    shell_scripts --> multilspy
+    emacs --> run_python
+    emacs --> multilspy
+    
+    %% Algorithm connections
+    algorithms --> fibonacci
+    algorithms --> factorial
+    algorithms --> primes
+    algorithms --> tests

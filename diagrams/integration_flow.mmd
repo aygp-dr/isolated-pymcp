@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant User
+    participant Emacs
+    participant Shell
+    participant Claude
+    participant Python as Run-Python MCP
+    participant LSP as MultilspyLSP
+    
+    Note over User,LSP: Code Development Flow
+    
+    User->>Emacs: Write Python algorithm
+    Emacs->>LSP: Request code analysis
+    LSP-->>Emacs: Return diagnostics
+    Emacs->>User: Display errors/warnings
+    
+    User->>Emacs: Request code completion
+    Emacs->>LSP: Get completions at point
+    LSP-->>Emacs: Return completion items
+    Emacs->>User: Show completion list
+    
+    User->>Emacs: Run Python code
+    Emacs->>Python: Execute code
+    Python-->>Emacs: Return execution results
+    Emacs->>User: Display results
+    
+    Note over User,LSP: Algorithm Analysis Flow
+    
+    User->>Shell: Request algorithm analysis
+    Shell->>Python: Execute algorithm
+    Python-->>Shell: Return execution results
+    Shell->>LSP: Request static analysis
+    LSP-->>Shell: Return diagnostics
+    Shell->>Claude: Send code + results + analysis
+    Claude-->>Shell: Return AI analysis
+    Shell->>User: Display comprehensive analysis
+    
+    Note over User,LSP: Security Boundaries
+    
+    User->>+Python: API requests
+    Python->>+LSP: Internal container communication
+    LSP-->>-Python: Isolated communication
+    Python-->>-User: Limited port exposure

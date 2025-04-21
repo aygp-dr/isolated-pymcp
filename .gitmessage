@@ -1,0 +1,24 @@
+# <type>[optional scope]: <description>
+# |<----  Using a Maximum Of 50 Characters  ---->|
+
+# Explain what and why this change is being made (not how)
+# |<----   Try To Limit Each Line to a Maximum Of 72 Characters   ---->|
+
+# Provide links to any relevant issues/PRs
+# Fixes #123, Refs #456
+
+# --- COMMIT END ---
+# Types can be
+#    feat     (new feature)
+#    fix      (bug fix)
+#    docs     (changes to documentation)
+#    style    (formatting, missing semicolons, etc; no code change)
+#    refactor (refactoring production code)
+#    test     (adding or refactoring tests; no production code change)
+#    chore    (updating tooling, dependencies, etc; no production code change)
+#
+# Remember to:
+# - Use imperative, present tense: "Add feature" not "Added feature"
+# - Don't capitalize first letter of description
+# - No period (.) at the end of the description
+# - Use co-authors with --trailer "Co-authored-by: Name <email@example.com>"
