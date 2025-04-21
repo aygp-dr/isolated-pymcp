@@ -1,0 +1,8 @@
+# Generated files from env-setup.org
+.dir-locals.el linguist-generated=true
+emacs/mcp-helpers.el linguist-generated=true
+.claude/preferences.json linguist-generated=true
+.vscode/settings.json linguist-generated=true
+
+# Org files
+*.org diff=org

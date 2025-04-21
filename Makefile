@@ -28,6 +28,8 @@ help:
 	@echo "make test           - Test MCP servers"
 	@echo "make analyze ALGO=x - Analyze algorithm x"
 	@echo "make clean          - Remove containers and images"
+	@echo "make tangle         - Generate config files from org sources"
+	@echo "make detangle       - Update org files from modified configs"
 	@echo "make help           - Show this help"
 
 # Build the Docker image
@@ -103,3 +105,22 @@ dirs:
 	@mkdir -p analysis_results
 	@mkdir -p emacs
 	@mkdir -p data/{memory,filesystem,github}
+	@mkdir -p .claude
+	@mkdir -p .vscode
+
+# Tangle org files to generate config files
+.PHONY: tangle
+tangle:
+	@echo "Tangling org files to generate config files..."
+	@emacs --batch --eval "(require 'org)" --eval '(org-babel-tangle-file "env-setup.org")'
+	@echo "Tangling complete. Config files generated."
+
+# Detangle - update org files from modified configs
+.PHONY: detangle
+detangle:
+	@echo "Detangling configs back into org files..."
+	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".dir-locals.el")'
+	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle "emacs/mcp-helpers.el")'
+	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".claude/preferences.json")'
+	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
+	@echo "Detangling complete. Org files updated."
