@@ -13,39 +13,31 @@ This project creates an isolated container environment that combines MCP and LSP
 
 #+BEGIN_SRC mermaid :file architecture.png
 graph TD
-    subgraph "Host System"
-        api_keys[API Keys]
-    end
+    A[Host System]
+    B[API Keys]
+    C[Alpine Container]
+    D[Run-Python MCP]
+    E[MultilspyLSP]
+    F[Python LSP Server]
+    G[Client Tools]
+    H[Python Algorithms]
     
-    subgraph "Alpine Container"
-        subgraph "MCP Servers"
-            run_python[Pydantic Run-Python]
-            multilspy[MultilspyLSP]
-            pythonlsp[Python LSP Server]
-        end
-        
-        subgraph "Client Tools"
-            claude_cli[Claude Code CLI]
-            shell_scripts[Shell Scripts]
-            emacs[Emacs + mcp.el]
-        end
-        
-        subgraph "Python Algorithms"
-            algorithms[Test Algorithms]
-        end
-    end
+    A --> B
+    A --> C
+    B --> D
+    B --> E
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+    C --> H
     
-    api_keys --> Alpine Container
-    run_python --> algorithms
-    multilspy --> pythonlsp
-    pythonlsp --> algorithms
+    D --> H
+    E --> F
+    F --> H
     
-    claude_cli --> run_python
-    claude_cli --> multilspy
-    shell_scripts --> run_python
-    shell_scripts --> multilspy
-    emacs --> run_python
-    emacs --> multilspy
+    G --> D
+    G --> E
 #+END_SRC
 
 ** Security Model
