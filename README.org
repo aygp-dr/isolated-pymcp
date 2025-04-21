@@ -76,19 +76,38 @@ The project implements a principle of least access architecture:
 
 ** Getting Started
 
-   #+BEGIN_SRC shell
-make init
-make .envrc
-   #+END_SRC
+1. Initial setup:
 
-   #+BEGIN_SRC shell
-   make build
-   make run
-   #+END_SRC
+#+BEGIN_SRC shell
+# Create required directories
+make dirs
 
-   #+BEGIN_SRC shell
-   make test
-   #+END_SRC
+# Generate configuration files from org sources
+make tangle
+
+# Create environment configuration (edit with your API keys)
+cp .envrc.example .envrc
+#+END_SRC
+
+2. Build and run the container:
+
+#+BEGIN_SRC shell
+# Build the Docker/Podman image
+make build
+
+# Run the container with mounted volumes
+make run
+#+END_SRC
+
+3. Test the environment:
+
+#+BEGIN_SRC shell
+# Verify MCP server connectivity
+make test
+
+# Try analyzing an algorithm (after creating one)
+make analyze ALGO=fibonacci
+#+END_SRC
 
 ** Command Reference
 
@@ -98,6 +117,26 @@ Key commands:
 - ~make test~ - Verify MCP server connectivity
 - ~make analyze ALGO=fibonacci~ - Analyze algorithm via MCP
 - ~make claude-analyze ALGO=fibonacci~ - Use Claude to analyze code
+- ~make tangle~ - Generate config files from org sources
+- ~make detangle~ - Update org files from modified configs
+
+The project uses literate programming with org-mode. Configuration files are generated from
+~env-setup.org~ using the tangle process. If you modify generated files directly, use detangle
+to propagate changes back to the org source.
+
+** Development Workflow
+
+This project follows a literate programming approach with org-mode. Key development files:
+
+- ~env-setup.org~ - Contains configuration for Emacs, VSCode, and Claude Code
+- ~SETUP.org~ - Contains general setup instructions and documentation
+- ~Makefile~ - Provides automation for common development tasks
+
+When making changes:
+
+1. For configuration: Edit the org files and run ~make tangle~
+2. For implementation: Follow standard Git workflow with conventional commits
+3. For testing: Add algorithms to ~algorithms/~ directory and use ~make analyze~
 
 ** Project Goals
 
