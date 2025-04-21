@@ -1,0 +1,9 @@
+{
+  "defaultModel": "claude-3-7-sonnet-20250219",
+  "pythonInspection": {
+    "enableLinting": true,
+    "enableTypeChecking": true
+  },
+  "securityAnalysis": true,
+  "autoCompleteEnabled": true
+}

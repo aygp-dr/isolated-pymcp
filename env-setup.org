@@ -12,7 +12,7 @@ This file manages environment and development configurations for isolated-pymcp.
 :header-args: :tangle .dir-locals.el
 :END:
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :mkdirp yes
 ;; Project-specific Emacs settings
 ((nil . ((fill-column . 100)
          (indent-tabs-mode . nil)))
@@ -27,7 +27,7 @@ This file manages environment and development configurations for isolated-pymcp.
 :header-args: :tangle emacs/mcp-helpers.el
 :END:
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :mkdirp yes
 ;;; mcp-helpers.el --- MCP integration helpers
 
 ;;; Code:
@@ -73,7 +73,7 @@ This file manages environment and development configurations for isolated-pymcp.
 :header-args: :tangle .claude/preferences.json
 :END:
 
-#+BEGIN_SRC json
+#+BEGIN_SRC json :mkdirp yes
 {
   "defaultModel": "claude-3-7-sonnet-20250219",
   "pythonInspection": {
@@ -90,7 +90,7 @@ This file manages environment and development configurations for isolated-pymcp.
 :header-args: :tangle .vscode/settings.json
 :END:
 
-#+BEGIN_SRC json
+#+BEGIN_SRC json :mkdirp yes
 {
   "python.linting.enabled": true,
   "python.analysis.typeCheckingMode": "basic",
