@@ -59,12 +59,12 @@ The project implements a principle of least access architecture:
 
 ** Integration Points
 
-| Component      | Protocol | Function                                |
-|----------------|----------|----------------------------------------|
-| Run-Python     | MCP      | Code execution and output capture       |
-| MultilspyLSP   | MCP+LSP  | Code intelligence bridge               |
-| Python LSP     | LSP      | Static analysis and completion         |
-| Claude Code    | -        | AI-assisted analysis and exploration    |
+| Component    | Protocol | Function                             |
+|--------------+----------+--------------------------------------|
+| Run-Python   | MCP      | Code execution and output capture    |
+| MultilspyLSP | MCP+LSP  | Code intelligence bridge             |
+| Python LSP   | LSP      | Static analysis and completion       |
+| Claude Code  | -        | AI-assisted analysis and exploration |
 
 ** Getting Started
 
@@ -136,6 +136,28 @@ When making changes:
 2. Provide a reference architecture for isolated AI code analysis
 3. Enable exploration of Python algorithm implementations
 4. Support multiple client interfaces while maintaining security
+
+** References
+
+- [[https://www.anthropic.com/news/model-context-protocol][Anthropic: Introducing the Model Context Protocol]] - Official announcement of MCP as an open standard for connecting AI assistants to data sources.
+
+- [[https://modelcontextprotocol.io/introduction][Model Context Protocol Documentation]] - Comprehensive documentation explaining MCP concepts, architecture, and implementation details.
+
+- [[https://github.com/modelcontextprotocol][Model Context Protocol GitHub]] - Official GitHub organization with protocol specification, SDKs, and reference implementations.
+
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/mcp][Anthropic MCP Documentation]] - Integration guides and best practices for using MCP with Claude.
+
+- [[https://github.com/microsoft/multilspy][Microsoft MultilspyLSP]] - The Python library for creating language server clients that powers our LSP integration.
+
+- [[https://github.com/python-lsp/python-lsp-server][Python LSP Server]] - The Python implementation of the Language Server Protocol used in this project.
+
+- [[https://microsoft.github.io/language-server-protocol/][Language Server Protocol]] - Background on the LSP standard that enables editor-agnostic language intelligence.
+
+- [[https://playbooks.com/mcp/asimihsan-multilspy-lsp][MultilspyLSP MCP Server]] - Reference implementation of an MCP server that provides LSP capabilities.
+
+- [[https://news.ycombinator.com/item?id=43691230][Hacker News: Model Context Protocol Discussion]] - Community discussion about MCP, including perspectives on security considerations and integration approaches.
+
+- [[https://simonwillison.net/2025/Apr/18/mcp-run-python/][Simon Willison: MCP Run Python]] - Detailed exploration of the MCP run-python implementation and its practical applications.
 
 ** License
 
