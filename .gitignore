@@ -50,6 +50,11 @@ tramp
 # Analysis results
 /analysis_results/
 
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+
 # Temporary files
 /tmp/
 .DS_Store
