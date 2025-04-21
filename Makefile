@@ -30,6 +30,9 @@ help:
 	@echo "make clean          - Remove containers and images"
 	@echo "make tangle         - Generate config files from org sources"
 	@echo "make detangle       - Update org files from modified configs"
+	@echo "make lint           - Run linting tools on code"
+	@echo "make format         - Format code with Black"
+	@echo "make typecheck      - Run type checking with mypy"
 	@echo "make help           - Show this help"
 
 # Build the Docker image
@@ -124,3 +127,44 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".claude/preferences.json")'
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
+
+# Ensure venv exists
+.PHONY: ensure-venv
+ensure-venv:
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		uv venv .venv; \
+	fi
+
+# Install development tools
+.PHONY: install-dev-tools
+install-dev-tools: ensure-venv
+	@echo "Installing development tools..."
+	@uv pip install flake8 black mypy
+	@echo "Development tools installed."
+
+# Python linting with flake8 via uv
+.PHONY: lint
+lint: install-dev-tools
+	@echo "Linting Python code..."
+	@.venv/bin/flake8 algorithms/ tests/
+	@echo "Lint complete."
+
+# Format Python code with Black
+.PHONY: format
+format: install-dev-tools
+	@echo "Formatting Python code..."
+	@.venv/bin/black algorithms/ tests/
+	@echo "Format complete."
+
+# Type check Python code with mypy
+.PHONY: typecheck
+typecheck: install-dev-tools
+	@echo "Running type checks..."
+	@.venv/bin/mypy --config-file mypy.ini --namespace-packages --explicit-package-bases algorithms/*.py tests/*.py
+	@echo "Type check complete."
+
+# Run all checks - lint, format and typecheck
+.PHONY: check-all
+check-all: lint format typecheck
+	@echo "All checks completed."

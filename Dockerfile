@@ -28,8 +28,14 @@ RUN apk add --no-cache \
 USER mcp
 WORKDIR /home/mcp
 
-# Install Python tools
-RUN pip install --user \
+# Install uv for Python package management
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to PATH
+ENV PATH="/home/mcp/.cargo/bin:${PATH}"
+
+# Install Python tools via uv
+RUN uv pip install --user \
     model-context-protocol \
     python-lsp-server[all] \
     debugpy \
@@ -38,6 +44,7 @@ RUN pip install --user \
     black \
     isort \
     mypy \
+    flake8 \
     multilspy
 
 # Install Claude Code CLI (if available)
