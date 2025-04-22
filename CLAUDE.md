@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Run Python example**: `python scripts/mcp_simple_example.py` - Tests MCP Python runner
 - **Quick Python**: `./scripts/run_python_code <code>` - Run Python code directly
 - **Analyze algorithm**: `make analyze ALGO=algorithm_name` - Run analysis via MCP
+- **Parametrized test**: `python -m pytest tests/test_file.py::test_name[param]` - Run test with parameter
 
 ## Python Commands (using UV with Python 3.11)
 - **Install deps**: `make install-dev` - Install dependencies with UV
@@ -22,6 +23,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Format code**: `make black` - Format Python code with Black (100 char line)
 - **Type check**: `make mypy` - Run type checking with mypy
 
+## Code Quality Commands
+- **Lint code (Make)**: `make lint` - Run flake8 linting via uv
+- **Format code (Make)**: `make format` - Format Python code with Black via uv
+- **Type check (Make)**: `make typecheck` - Run type checking with mypy via uv
+- **Run all checks**: `make check-all` - Run all lint, format, and type checks
+- **Format code (direct)**: `black algorithms/ tests/` - Format Python code with Black
+- **Type check (direct)**: `mypy algorithms/ tests/` - Run type checking with mypy
+- **Lint code (direct)**: `flake8 algorithms/ tests/` - Run linting with flake8
+
 ## Code Style Guidelines
 - **Python**: PEP 8 with Black (100 char line length), type annotations required
 - **Docstrings**: Google style with Args/Returns sections and complexity analysis (time & space)
@@ -31,11 +41,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Testing**: pytest with parametrized tests, markers for slow/benchmark tests
 - **Shebang lines**: `#!/usr/bin/env python3` for compatibility
 - **Security**: No hardcoded credentials, use environment variables
+- **Performance**: Include Big O complexity analysis in docstrings
+- **Container compatibility**: Use `DOCKER_CMD=$(command -v podman || command -v docker)`
 
-## Git Commit Standards
+## Git Standards
+
+### Commit Standards
 - Follow Conventional Commits: `<type>[scope]: <description>`
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `build`, `ci`
 - Use Git trailers instead of Co-authored-by in message body
+- Example: `git commit -m "feat(mcp): add python-lsp support" --trailer "Co-authored-by: Name <email>"`
+
+### Branch Naming Standards
+- Format: `<type>/<issue-number>-<short-description>`
+- Types: Same as commit types (`feat`, `fix`, `docs`, etc.)
+- Issue number: GitHub issue number (e.g., `33`)
+- Description: Brief kebab-case description
+- Examples:
+  - `feat/33-claude-md-algo-guidance`
+  - `security/21-container-resource-limits`
+  - `fix/18-curl-bash-pattern`
 
 ## Project Organization
 - **algorithms/**: Core algorithm implementations
@@ -69,10 +94,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Unique implementation characteristics
 - **Output location**: Analysis results stored in `analysis_results/` directory
 
-## Claude Code Commands
-- **Algorithm comparison**: `/compare algorithms/factorial.py algorithms/fibonacci.py`
-- **Complexity analysis**: `/complexity-analysis algorithms/primes.py`
-- **Implementation suggestions**: `/suggest-optimizations algorithms/fibonacci.py`
-- **Adding new algorithm**: `/implement <algorithm_name> -t [time complexity] -s [space complexity]`
-- **Test generation**: `/generate-tests algorithms/primes.py`
-- **Benchmark execution**: `/benchmark algorithms/factorial.py` (runs benchmark and analyzes results)
+## Claude Code Slash Commands
+- **/user:mise-en-place** - Organize workspace and ensure everything is in a clean state
+- **/user:security-review** - Perform a thorough security review of the codebase
+- **/user:lint-code** - Run comprehensive code quality checks
+- **/user:lint-fix** - Fix linting issues automatically
+- **/user:generate-docs** - Create or update project documentation
+- **/user:issue-triage** - Triage and manage GitHub issues
+- **Algorithm commands**:
+  - **/compare algorithms/factorial.py algorithms/fibonacci.py**
+  - **/complexity-analysis algorithms/primes.py**
+  - **/suggest-optimizations algorithms/fibonacci.py**
+  - **/implement <algorithm_name> -t [time complexity] -s [space complexity]**
+  - **/generate-tests algorithms/primes.py**
+  - **/benchmark algorithms/factorial.py**
+
+For a complete list of available commands, see `.claude/README.md`.
