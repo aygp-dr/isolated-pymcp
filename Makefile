@@ -59,7 +59,7 @@ stop: ## Stop and remove the container
 
 # Test MCP servers
 .PHONY: test
-test: README.md ## Test MCP servers using test script
+test: test-python README.md ## Run tests and verify MCP servers
 	@echo "Testing MCP servers..."
 	$(DOCKER_CMD) exec $(CONTAINER_NAME) /home/mcp/scripts/mcp-python-test.sh
 
@@ -127,9 +127,14 @@ pytest: README.md ## Run all tests with pytest
 	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
 
 .PHONY: test-python
-test-python: ## Run Python tests directly without UV/Poetry
-	@echo "Running Python tests directly..."
-	python -m pytest tests/ -v
+test-python: .venv ## Run Python tests with UV
+	@echo "Running Python tests with UV..."
+	@. .venv/bin/activate && python -m pytest tests/ -v
+
+.venv:
+	@echo "Creating virtual environment..."
+	@uv venv .venv
+	@. .venv/bin/activate && uv pip install pytest
 
 .PHONY: pytest-verbose
 pytest-verbose: README.md ## Run tests with verbose output
