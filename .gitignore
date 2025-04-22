@@ -61,3 +61,6 @@ uv.lock
 # Temporary files
 /tmp/
 .DS_Store
+
+# Generated from org files
+README.md

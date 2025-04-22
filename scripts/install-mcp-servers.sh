@@ -5,32 +5,65 @@ set -e
 
 echo "Installing MCP servers..."
 
-# Install simple MCP servers first
-echo "Installing Filesystem MCP server..."
-claude mcp add filesystem
+# Check and install Filesystem MCP server
+echo "Checking Filesystem MCP server..."
+if ! claude mcp list | grep -q "filesystem"; then
+    echo "Installing Filesystem MCP server..."
+    claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem ~/projects
+else
+    echo "Filesystem MCP server already installed."
+fi
 
-echo "Installing Memory MCP server..."
-claude mcp add memory
+# Check and install Memory MCP server
+echo "Checking Memory MCP server..."
+if ! claude mcp list | grep -q "memory"; then
+    echo "Installing Memory MCP server..."
+    claude mcp add memory -- npx -y @modelcontextprotocol/server-memory
+else
+    echo "Memory MCP server already installed."
+fi
 
-echo "Installing Github MCP server..."
-claude mcp add github
+# Check and install Github MCP server
+echo "Checking Github MCP server..."
+if ! claude mcp list | grep -q "github"; then
+    echo "Installing Github MCP server..."
+    claude mcp add github
+else
+    echo "Github MCP server already installed."
+fi
 
-# Install LSP servers
-echo "Installing Python LSP servers..."
-claude mcp add multilspy
-claude mcp add python-lsp
+# Check and install LSP servers
+echo "Checking Python LSP servers..."
+if ! claude mcp list | grep -q "multilspy"; then
+    echo "Installing Multi LSP server..."
+    claude mcp add multilspy
+else
+    echo "Multi LSP server already installed."
+fi
+
+if ! claude mcp list | grep -q "python-lsp"; then
+    echo "Installing Python LSP server..."
+    claude mcp add python-lsp
+else
+    echo "Python LSP server already installed."
+fi
 
 # Install prerequisites for Python Runner
 echo "Installing prerequisites..."
 npm install
 
-# Install Python Runner MCP server
-echo "Installing Python Runner MCP server..."
-claude mcp add python-runner -- \
-    deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-    jsr:@pydantic/mcp-run-python stdio
+# Check and install Python Runner MCP server
+echo "Checking Python Runner MCP server..."
+if ! claude mcp list | grep -q "python-runner"; then
+    echo "Installing Python Runner MCP server..."
+    claude mcp add python-runner -- \
+        deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+        jsr:@pydantic/mcp-run-python stdio
+else
+    echo "Python Runner MCP server already installed."
+fi
 
 echo "MCP servers installation complete."
 echo ""
-echo "To test the installation, run: claude mcp list"
+echo "To verify the installation, run: claude mcp list"
 echo "To start servers, run: ./scripts/start-mcp-servers.sh"
