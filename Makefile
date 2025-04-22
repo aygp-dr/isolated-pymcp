@@ -17,23 +17,40 @@ MCP_PYTHONLSP_PORT ?= 3006
 # FreeBSD compatibility
 DOCKER_CMD := $(shell command -v podman || command -v docker)
 
+# Use UV for Python commands
+PYTHON := uv run --python=3.11
+
 # Default target
 .PHONY: help
 help:
 	@echo "isolated-pymcp Makefile"
 	@echo "---------------------"
-	@echo "make build          - Build the Docker image"
-	@echo "make run            - Run the container"
-	@echo "make stop           - Stop the container"
-	@echo "make test           - Test MCP servers"
-	@echo "make analyze ALGO=x - Analyze algorithm x"
-	@echo "make clean          - Remove containers and images"
-	@echo "make tangle         - Generate config files from org sources"
-	@echo "make detangle       - Update org files from modified configs"
-	@echo "make lint           - Run linting tools on code"
-	@echo "make format         - Format code with Black"
-	@echo "make typecheck      - Run type checking with mypy"
-	@echo "make help           - Show this help"
+	@echo "Docker & Container:"
+	@echo "  make build          - Build the Docker image"
+	@echo "  make run            - Run the container"
+	@echo "  make stop           - Stop the container"
+	@echo "  make clean          - Remove containers and images"
+	@echo ""
+	@echo "MCP & Analysis:"
+	@echo "  make test           - Test MCP servers"
+	@echo "  make analyze ALGO=x - Analyze algorithm x"
+	@echo "  make claude-analyze ALGO=x - Local Claude analysis"
+	@echo "  make install-mcp    - Install MCP CLI with UV"
+	@echo ""
+	@echo "Python Development (using UV with Python 3.11):"
+	@echo "  make pytest          - Run pytest"
+	@echo "  make pytest-verbose  - Run pytest in verbose mode"
+	@echo "  make lint           - Run all linters (isort, black, mypy, flake8)"
+	@echo "  make black          - Format code with black"
+	@echo "  make isort          - Sort imports"
+	@echo "  make mypy           - Type checking"
+	@echo "  make flake8         - Style enforcement"
+	@echo "  make install-dev    - Install development dependencies with UV"
+	@echo ""
+	@echo "Org Mode:"
+	@echo "  make tangle         - Generate config files from org sources"
+	@echo "  make detangle       - Update org files from modified configs"
+	@echo "  make help           - Show this help"
 
 # Build the Docker image
 .PHONY: build
@@ -43,20 +60,19 @@ build:
 
 # Run the container
 .PHONY: run
-run: check-secrets
+run:
 	@echo "Running $(CONTAINER_NAME) container..."
 	$(DOCKER_CMD) run -d --name $(CONTAINER_NAME) \
-		--env-file .env \
-		-p 127.0.0.1:$(MCP_RUNPYTHON_PORT):$(MCP_RUNPYTHON_PORT) \
-		-p 127.0.0.1:$(MCP_MEMORY_PORT):$(MCP_MEMORY_PORT) \
-		-p 127.0.0.1:$(MCP_FILESYSTEM_PORT):$(MCP_FILESYSTEM_PORT) \
-		-p 127.0.0.1:$(MCP_GITHUB_PORT):$(MCP_GITHUB_PORT) \
-		-p 127.0.0.1:$(MCP_MULTILSPY_PORT):$(MCP_MULTILSPY_PORT) \
-		-p 127.0.0.1:$(MCP_PYTHONLSP_PORT):$(MCP_PYTHONLSP_PORT) \
+		-e GITHUB_TOKEN="$(GITHUB_TOKEN)" \
+		-e ANTHROPIC_API_KEY="$(ANTHROPIC_API_KEY)" \
+		-p $(MCP_RUNPYTHON_PORT):$(MCP_RUNPYTHON_PORT) \
+		-p $(MCP_MEMORY_PORT):$(MCP_MEMORY_PORT) \
+		-p $(MCP_FILESYSTEM_PORT):$(MCP_FILESYSTEM_PORT) \
+		-p $(MCP_GITHUB_PORT):$(MCP_GITHUB_PORT) \
+		-p $(MCP_MULTILSPY_PORT):$(MCP_MULTILSPY_PORT) \
+		-p $(MCP_PYTHONLSP_PORT):$(MCP_PYTHONLSP_PORT) \
 		-v $(PWD)/algorithms:/home/mcp/algorithms \
 		-v $(PWD)/analysis_results:/home/mcp/analysis_results \
-		--memory=1g \
-		--cpus=2 \
 		$(IMAGE_NAME)
 
 # Stop the container
@@ -112,9 +128,6 @@ dirs:
 	@mkdir -p .claude
 	@mkdir -p .vscode
 
-README.md: README.org ## uv supported README format + publish support
-	emacs --batch -l org --eval "(progn (find-file \"README.org\") (org-md-export-to-markdown))"
-
 # Tangle org files to generate config files
 .PHONY: tangle
 tangle:
@@ -132,93 +145,47 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
 
-# Ensure venv exists
-.PHONY: ensure-venv
-ensure-venv:
-	@if [ ! -d ".venv" ]; then \
-		echo "Creating virtual environment..."; \
-		uv venv .venv; \
-	fi
+# Python testing and development targets
+.PHONY: pytest
+pytest:
+	@echo "Running pytest..."
+	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
 
-# Install development tools
-.PHONY: install-dev-tools
-install-dev-tools: ensure-venv
-	@echo "Installing development tools..."
-	@uv pip install flake8 black mypy
-	@echo "Development tools installed."
+.PHONY: pytest-verbose
+pytest-verbose:
+	@echo "Running pytest in verbose mode..."
+	$(PYTHON) -m pytest tests/ -v $(PYTEST_ARGS)
 
-# Python linting with flake8 via uv
+.PHONY: black
+black:
+	@echo "Running black formatter..."
+	$(PYTHON) -m black algorithms/ tests/
+
+.PHONY: mypy
+mypy:
+	@echo "Running mypy type checking..."
+	$(PYTHON) -m mypy algorithms/ tests/
+
+.PHONY: flake8
+flake8:
+	@echo "Running flake8 linting..."
+	$(PYTHON) -m flake8 algorithms/ tests/
+
+.PHONY: isort
+isort:
+	@echo "Running isort to organize imports..."
+	$(PYTHON) -m isort algorithms/ tests/
+
 .PHONY: lint
-lint: install-dev-tools
-	@echo "Linting Python code..."
-	@.venv/bin/flake8 algorithms/ tests/
-	@echo "Lint complete."
+lint: isort black mypy flake8
+	@echo "All linting steps completed."
 
-# Format Python code with Black
-.PHONY: format
-format: install-dev-tools
-	@echo "Formatting Python code..."
-	@.venv/bin/black algorithms/ tests/
-	@echo "Format complete."
+.PHONY: install-dev
+install-dev:
+	@echo "Installing development dependencies with UV..."
+	uv pip install -e ".[dev]"
 
-# Type check Python code with mypy
-.PHONY: typecheck
-typecheck: install-dev-tools
-	@echo "Running type checks..."
-	@.venv/bin/mypy --config-file mypy.ini --namespace-packages --explicit-package-bases algorithms/*.py tests/*.py
-	@echo "Type check complete."
-
-# Run all checks - lint, format and typecheck
-.PHONY: check-all
-check-all: lint format typecheck
-	@echo "All checks completed."
-
-# Check for required secrets and set up .env file
-.PHONY: check-secrets
-check-secrets:
-	@if [ ! -f ".env" ]; then \
-		echo "No .env file found. Checking for GitHub auth..."; \
-		if gh auth status &>/dev/null; then \
-			./get_secrets.sh; \
-		else \
-			echo "Error: No .env file and GitHub CLI not authenticated."; \
-			echo "Either:"; \
-			echo "  1. Run 'gh auth login' and then 'make check-secrets' again"; \
-			echo "  2. Create a .env file manually based on .envrc.example"; \
-			exit 1; \
-		fi; \
-	else \
-		echo ".env file found, using existing secrets"; \
-	fi
-
-
-# Target to list MCP tools from the Pydantic Python server
-list-mcp-tools:
-	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
-	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
-
-# Alternative with prettier formatting
-mcp-tools:
-	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
-	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | \
-	jq '.result.tools[] | {name, description}'
-
-# Simple addition example
-add:
-	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(40 + 2)"}}, "id": 2}' | \
-	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.output.stdout'
-
-# List available resources
-list-mcp-resources:
-	@echo '{"jsonrpc": "2.0", "method": "resources/list", "id": 1}' | \
-	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
-
-# List available prompts
-list-mcp-prompts:
-	@echo '{"jsonrpc": "2.0", "method": "prompts/list", "id": 1}' | \
-	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+.PHONY: install-mcp
+install-mcp:
+	@echo "Installing MCP CLI with UV..."
+	uv pip install "mcp[cli]"

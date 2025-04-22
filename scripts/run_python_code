@@ -1,0 +1,5 @@
+#!/bin/bash
+# Simple wrapper to run Python code with MCP Python runner
+
+# Pass all arguments to the Python script
+python3 "$(dirname "$0")/run_python_code.py" "$@"
