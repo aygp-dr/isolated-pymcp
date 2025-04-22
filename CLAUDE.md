@@ -27,11 +27,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Shebang lines**: Use `#!/usr/bin/env python3` for compatibility
 - **Security**: No hardcoded credentials, use environment variables
 
-## Git Commit Standards
+## Git Standards
+
+### Commit Standards
 - Follow Conventional Commits: `<type>[scope]: <description>`
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `build`, `ci`
 - Use Git trailers instead of Co-authored-by in message body
 - Example: `git commit -m "feat(mcp): add python-lsp support" --trailer "Co-authored-by: Name <email>"`
+
+### Branch Naming Standards
+- Format: `<type>/<issue-number>-<short-description>`
+- Types: Same as commit types (`feat`, `fix`, `docs`, etc.)
+- Issue number: GitHub issue number (e.g., `33`)
+- Description: Brief kebab-case description
+- Examples:
+  - `feat/33-claude-md-algo-guidance`
+  - `security/21-container-resource-limits`
+  - `fix/18-curl-bash-pattern`
 
 ## FreeBSD Compatibility
 - Design for cross-platform compatibility
