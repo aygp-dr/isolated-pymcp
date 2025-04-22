@@ -1,6 +1,8 @@
 # Coding Standards
 
-## Git Commit Guidelines
+## Git Guidelines
+
+### Commit Guidelines
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/)
 - Follow the format: `<type>[optional scope]: <description>`
@@ -8,6 +10,19 @@
 - Use the imperative mood ("add" not "adds" or "added")
 - Do not include collaborator information in commit message body
 - Use `--trailer` for attribution and signing
+
+### Branch Naming Guidelines
+
+- Always create branches from GitHub issues
+- Follow the format: `<type>/<issue-number>-<short-description>`
+- Types should match conventional commits (feat, fix, docs, etc.)
+- Include the issue number for traceability
+- Use kebab-case for the description portion
+- Examples:
+  - `feat/33-claude-md-algo-guidance`
+  - `security/21-container-resource-limits`
+  - `docs/29-claude-org-mode-tutorial`
+  - `fix/18-curl-bash-pattern`
 
 ## Script Development
 

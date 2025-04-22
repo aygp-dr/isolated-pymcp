@@ -17,23 +17,40 @@ MCP_PYTHONLSP_PORT ?= 3006
 # FreeBSD compatibility
 DOCKER_CMD := $(shell command -v podman || command -v docker)
 
+# Use UV for Python commands
+PYTHON := uv run --python=3.11
+
 # Default target
 .PHONY: help
 help:
 	@echo "isolated-pymcp Makefile"
 	@echo "---------------------"
-	@echo "make build          - Build the Docker image"
-	@echo "make run            - Run the container"
-	@echo "make stop           - Stop the container"
-	@echo "make test           - Test MCP servers"
-	@echo "make analyze ALGO=x - Analyze algorithm x"
-	@echo "make clean          - Remove containers and images"
-	@echo "make tangle         - Generate config files from org sources"
-	@echo "make detangle       - Update org files from modified configs"
-	@echo "make lint           - Run linting tools on code"
-	@echo "make format         - Format code with Black"
-	@echo "make typecheck      - Run type checking with mypy"
-	@echo "make help           - Show this help"
+	@echo "Docker & Container:"
+	@echo "  make build          - Build the Docker image"
+	@echo "  make run            - Run the container"
+	@echo "  make stop           - Stop the container"
+	@echo "  make clean          - Remove containers and images"
+	@echo ""
+	@echo "MCP & Analysis:"
+	@echo "  make test           - Test MCP servers"
+	@echo "  make analyze ALGO=x - Analyze algorithm x"
+	@echo "  make claude-analyze ALGO=x - Local Claude analysis"
+	@echo "  make install-mcp    - Install MCP CLI with UV"
+	@echo ""
+	@echo "Python Development (using UV with Python 3.11):"
+	@echo "  make pytest          - Run pytest"
+	@echo "  make pytest-verbose  - Run pytest in verbose mode"
+	@echo "  make lint           - Run all linters (isort, black, mypy, flake8)"
+	@echo "  make black          - Format code with black"
+	@echo "  make isort          - Sort imports"
+	@echo "  make mypy           - Type checking"
+	@echo "  make flake8         - Style enforcement"
+	@echo "  make install-dev    - Install development dependencies with UV"
+	@echo ""
+	@echo "Org Mode:"
+	@echo "  make tangle         - Generate config files from org sources"
+	@echo "  make detangle       - Update org files from modified configs"
+	@echo "  make help           - Show this help"
 
 # Build the Docker image
 .PHONY: build
@@ -128,43 +145,47 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
 
-# Ensure venv exists
-.PHONY: ensure-venv
-ensure-venv:
-	@if [ ! -d ".venv" ]; then \
-		echo "Creating virtual environment..."; \
-		uv venv .venv; \
-	fi
+# Python testing and development targets
+.PHONY: pytest
+pytest:
+	@echo "Running pytest..."
+	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
 
-# Install development tools
-.PHONY: install-dev-tools
-install-dev-tools: ensure-venv
-	@echo "Installing development tools..."
-	@uv pip install flake8 black mypy
-	@echo "Development tools installed."
+.PHONY: pytest-verbose
+pytest-verbose:
+	@echo "Running pytest in verbose mode..."
+	$(PYTHON) -m pytest tests/ -v $(PYTEST_ARGS)
 
-# Python linting with flake8 via uv
+.PHONY: black
+black:
+	@echo "Running black formatter..."
+	$(PYTHON) -m black algorithms/ tests/
+
+.PHONY: mypy
+mypy:
+	@echo "Running mypy type checking..."
+	$(PYTHON) -m mypy algorithms/ tests/
+
+.PHONY: flake8
+flake8:
+	@echo "Running flake8 linting..."
+	$(PYTHON) -m flake8 algorithms/ tests/
+
+.PHONY: isort
+isort:
+	@echo "Running isort to organize imports..."
+	$(PYTHON) -m isort algorithms/ tests/
+
 .PHONY: lint
-lint: install-dev-tools
-	@echo "Linting Python code..."
-	@.venv/bin/flake8 algorithms/ tests/
-	@echo "Lint complete."
+lint: isort black mypy flake8
+	@echo "All linting steps completed."
 
-# Format Python code with Black
-.PHONY: format
-format: install-dev-tools
-	@echo "Formatting Python code..."
-	@.venv/bin/black algorithms/ tests/
-	@echo "Format complete."
+.PHONY: install-dev
+install-dev:
+	@echo "Installing development dependencies with UV..."
+	uv pip install -e ".[dev]"
 
-# Type check Python code with mypy
-.PHONY: typecheck
-typecheck: install-dev-tools
-	@echo "Running type checks..."
-	@.venv/bin/mypy --config-file mypy.ini --namespace-packages --explicit-package-bases algorithms/*.py tests/*.py
-	@echo "Type check complete."
-
-# Run all checks - lint, format and typecheck
-.PHONY: check-all
-check-all: lint format typecheck
-	@echo "All checks completed."
+.PHONY: install-mcp
+install-mcp:
+	@echo "Installing MCP CLI with UV..."
+	uv pip install "mcp[cli]"
