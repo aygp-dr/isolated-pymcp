@@ -59,7 +59,7 @@ stop: ## Stop and remove the container
 
 # Test MCP servers
 .PHONY: test
-test: ## Test MCP servers using test script
+test: README.md ## Test MCP servers using test script
 	@echo "Testing MCP servers..."
 	$(DOCKER_CMD) exec $(CONTAINER_NAME) /home/mcp/scripts/mcp-python-test.sh
 
@@ -122,12 +122,17 @@ detangle: ## Update org files from modified configs
 
 # Python testing and development targets
 .PHONY: pytest
-pytest: ## Run all tests with pytest
+pytest: README.md ## Run all tests with pytest
 	@echo "Running pytest..."
 	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
 
+.PHONY: test-python
+test-python: ## Run Python tests directly without UV/Poetry
+	@echo "Running Python tests directly..."
+	python -m pytest tests/ -v
+
 .PHONY: pytest-verbose
-pytest-verbose: ## Run tests with verbose output
+pytest-verbose: README.md ## Run tests with verbose output
 	@echo "Running pytest in verbose mode..."
 	$(PYTHON) -m pytest tests/ -v $(PYTEST_ARGS)
 
