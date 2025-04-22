@@ -17,20 +17,40 @@ MCP_PYTHONLSP_PORT ?= 3006
 # FreeBSD compatibility
 DOCKER_CMD := $(shell command -v podman || command -v docker)
 
+# Use UV for Python commands
+PYTHON := uv run --python=3.11
+
 # Default target
 .PHONY: help
 help:
 	@echo "isolated-pymcp Makefile"
 	@echo "---------------------"
-	@echo "make build          - Build the Docker image"
-	@echo "make run            - Run the container"
-	@echo "make stop           - Stop the container"
-	@echo "make test           - Test MCP servers"
-	@echo "make analyze ALGO=x - Analyze algorithm x"
-	@echo "make clean          - Remove containers and images"
-	@echo "make tangle         - Generate config files from org sources"
-	@echo "make detangle       - Update org files from modified configs"
-	@echo "make help           - Show this help"
+	@echo "Docker & Container:"
+	@echo "  make build          - Build the Docker image"
+	@echo "  make run            - Run the container"
+	@echo "  make stop           - Stop the container"
+	@echo "  make clean          - Remove containers and images"
+	@echo ""
+	@echo "MCP & Analysis:"
+	@echo "  make test           - Test MCP servers"
+	@echo "  make analyze ALGO=x - Analyze algorithm x"
+	@echo "  make claude-analyze ALGO=x - Local Claude analysis"
+	@echo "  make install-mcp    - Install MCP CLI with UV"
+	@echo ""
+	@echo "Python Development (using UV with Python 3.11):"
+	@echo "  make pytest          - Run pytest"
+	@echo "  make pytest-verbose  - Run pytest in verbose mode"
+	@echo "  make lint           - Run all linters (isort, black, mypy, flake8)"
+	@echo "  make black          - Format code with black"
+	@echo "  make isort          - Sort imports"
+	@echo "  make mypy           - Type checking"
+	@echo "  make flake8         - Style enforcement"
+	@echo "  make install-dev    - Install development dependencies with UV"
+	@echo ""
+	@echo "Org Mode:"
+	@echo "  make tangle         - Generate config files from org sources"
+	@echo "  make detangle       - Update org files from modified configs"
+	@echo "  make help           - Show this help"
 
 # Build the Docker image
 .PHONY: build
@@ -124,3 +144,48 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".claude/preferences.json")'
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
+
+# Python testing and development targets
+.PHONY: pytest
+pytest:
+	@echo "Running pytest..."
+	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
+
+.PHONY: pytest-verbose
+pytest-verbose:
+	@echo "Running pytest in verbose mode..."
+	$(PYTHON) -m pytest tests/ -v $(PYTEST_ARGS)
+
+.PHONY: black
+black:
+	@echo "Running black formatter..."
+	$(PYTHON) -m black algorithms/ tests/
+
+.PHONY: mypy
+mypy:
+	@echo "Running mypy type checking..."
+	$(PYTHON) -m mypy algorithms/ tests/
+
+.PHONY: flake8
+flake8:
+	@echo "Running flake8 linting..."
+	$(PYTHON) -m flake8 algorithms/ tests/
+
+.PHONY: isort
+isort:
+	@echo "Running isort to organize imports..."
+	$(PYTHON) -m isort algorithms/ tests/
+
+.PHONY: lint
+lint: isort black mypy flake8
+	@echo "All linting steps completed."
+
+.PHONY: install-dev
+install-dev:
+	@echo "Installing development dependencies with UV..."
+	uv pip install -e ".[dev]"
+
+.PHONY: install-mcp
+install-mcp:
+	@echo "Installing MCP CLI with UV..."
+	uv pip install "mcp[cli]"

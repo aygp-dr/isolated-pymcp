@@ -58,3 +58,6 @@ npm-debug.log*
 # Temporary files
 /tmp/
 .DS_Store
+
+# Generated from org files
+README.md
