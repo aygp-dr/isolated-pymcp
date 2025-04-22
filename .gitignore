@@ -55,6 +55,12 @@ node_modules/
 package-lock.json
 npm-debug.log*
 
+# UV
+uv.lock
+
 # Temporary files
 /tmp/
 .DS_Store
+
+# Generated from org files
+README.md

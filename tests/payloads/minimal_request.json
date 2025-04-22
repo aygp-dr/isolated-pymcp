@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "runPython",
+  "params": {
+    "files": [
+      {
+        "name": "main.py",
+        "content": "def fib(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b\n\nresult = fib(10)\nprint(f'Fibonacci(10) = {result}')",
+        "active": true
+      }
+    ]
+  }
+}

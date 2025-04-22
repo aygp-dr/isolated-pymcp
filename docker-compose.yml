@@ -12,19 +12,23 @@ services:
       - ./analysis_results:/home/mcp/analysis_results
       - ./data:/home/mcp/data
     ports:
-      - "${MCP_RUNPYTHON_PORT:-3001}:3001"
-      - "${MCP_MEMORY_PORT:-3002}:3002"
-      - "${MCP_FILESYSTEM_PORT:-3003}:3003"
-      - "${MCP_GITHUB_PORT:-3004}:3004"
-      - "${MCP_MULTILSPY_PORT:-3005}:3005"
+      - "127.0.0.1:${MCP_RUNPYTHON_PORT:-3001}:3001"
+      - "127.0.0.1:${MCP_MEMORY_PORT:-3002}:3002"
+      - "127.0.0.1:${MCP_FILESYSTEM_PORT:-3003}:3003"
+      - "127.0.0.1:${MCP_GITHUB_PORT:-3004}:3004"
+      - "127.0.0.1:${MCP_MULTILSPY_PORT:-3005}:3005"
+    env_file: .env
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - MCP_RUNPYTHON_PORT=3001
       - MCP_MEMORY_PORT=3002
       - MCP_FILESYSTEM_PORT=3003
       - MCP_GITHUB_PORT=3004
       - MCP_MULTILSPY_PORT=3005
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
