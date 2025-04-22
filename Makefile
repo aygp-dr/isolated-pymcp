@@ -16,51 +16,26 @@ MCP_PYTHONLSP_PORT ?= 3006
 
 # FreeBSD compatibility
 DOCKER_CMD := $(shell command -v podman || command -v docker)
+AWK_CMD := $(shell command -v gawk || command -v awk)
 
 # Use UV for Python commands
 PYTHON := uv run --python=3.11
 
 # Default target
 .PHONY: help
-help:
-	@echo "isolated-pymcp Makefile"
-	@echo "---------------------"
-	@echo "Docker & Container:"
-	@echo "  make build          - Build the Docker image"
-	@echo "  make run            - Run the container"
-	@echo "  make stop           - Stop the container"
-	@echo "  make clean          - Remove containers and images"
-	@echo ""
-	@echo "MCP & Analysis:"
-	@echo "  make test           - Test MCP servers"
-	@echo "  make analyze ALGO=x - Analyze algorithm x"
-	@echo "  make claude-analyze ALGO=x - Local Claude analysis"
-	@echo "  make install-mcp    - Install MCP CLI with UV"
-	@echo ""
-	@echo "Python Development (using UV with Python 3.11):"
-	@echo "  make pytest          - Run pytest"
-	@echo "  make pytest-verbose  - Run pytest in verbose mode"
-	@echo "  make lint           - Run all linters (isort, black, mypy, flake8)"
-	@echo "  make black          - Format code with black"
-	@echo "  make isort          - Sort imports"
-	@echo "  make mypy           - Type checking"
-	@echo "  make flake8         - Style enforcement"
-	@echo "  make install-dev    - Install development dependencies with UV"
-	@echo ""
-	@echo "Org Mode:"
-	@echo "  make tangle         - Generate config files from org sources"
-	@echo "  make detangle       - Update org files from modified configs"
-	@echo "  make help           - Show this help"
+help: ## Display this help message
+	@echo "Available targets:"
+	@awk -F: '/^[a-z-]+:/ {print "  "$$1}' Makefile
 
 # Build the Docker image
 .PHONY: build
-build:
+build: ## Build the Docker/Podman image
 	@echo "Building $(IMAGE_NAME) image..."
 	$(DOCKER_CMD) build -t $(IMAGE_NAME) .
 
 # Run the container
 .PHONY: run
-run:
+run: ## Start container with mounted volumes
 	@echo "Running $(CONTAINER_NAME) container..."
 	$(DOCKER_CMD) run -d --name $(CONTAINER_NAME) \
 		-e GITHUB_TOKEN="$(GITHUB_TOKEN)" \
@@ -77,20 +52,20 @@ run:
 
 # Stop the container
 .PHONY: stop
-stop:
+stop: ## Stop and remove the container
 	@echo "Stopping $(CONTAINER_NAME) container..."
 	$(DOCKER_CMD) stop $(CONTAINER_NAME) || true
 	$(DOCKER_CMD) rm $(CONTAINER_NAME) || true
 
 # Test MCP servers
 .PHONY: test
-test:
+test: ## Test MCP servers using test script
 	@echo "Testing MCP servers..."
 	$(DOCKER_CMD) exec $(CONTAINER_NAME) /home/mcp/scripts/mcp-python-test.sh
 
 # Analyze algorithm
 .PHONY: analyze
-analyze:
+analyze: ## Run analysis via MCP (usage: make analyze ALGO=fibonacci)
 	@if [ -z "$(ALGO)" ]; then \
 		echo "Error: ALGO not specified"; \
 		echo "Usage: make analyze ALGO=fibonacci"; \
@@ -101,7 +76,7 @@ analyze:
 
 # Analyze with Claude directly
 .PHONY: claude-analyze
-claude-analyze:
+claude-analyze: ## Run algorithm analysis with local Claude Code (usage: make claude-analyze ALGO=fibonacci)
 	@if [ -z "$(ALGO)" ]; then \
 		echo "Error: ALGO not specified"; \
 		echo "Usage: make claude-analyze ALGO=fibonacci"; \
@@ -112,14 +87,14 @@ claude-analyze:
 
 # Clean up
 .PHONY: clean
-clean: stop
+clean: stop ## Remove container and image
 	@echo "Removing $(IMAGE_NAME) image..."
 	$(DOCKER_CMD) rmi $(IMAGE_NAME) || true
 	@echo "Cleanup complete"
 
 # Generate directories
 .PHONY: dirs
-dirs:
+dirs: ## Create required directories
 	@mkdir -p algorithms
 	@mkdir -p scripts
 	@mkdir -p analysis_results
@@ -130,14 +105,14 @@ dirs:
 
 # Tangle org files to generate config files
 .PHONY: tangle
-tangle:
+tangle: ## Generate config files from org files
 	@echo "Tangling org files to generate config files..."
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-tangle-file "env-setup.org")'
 	@echo "Tangling complete. Config files generated."
 
 # Detangle - update org files from modified configs
 .PHONY: detangle
-detangle:
+detangle: ## Update org files from modified configs
 	@echo "Detangling configs back into org files..."
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".dir-locals.el")'
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle "emacs/mcp-helpers.el")'
@@ -145,6 +120,7 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
 
+<<<<<<< HEAD
 # Python testing and development targets
 .PHONY: pytest
 pytest:
@@ -189,3 +165,100 @@ install-dev:
 install-mcp:
 	@echo "Installing MCP CLI with UV..."
 	uv pip install "mcp[cli]"
+=======
+
+# Ensure venv exists
+.PHONY: ensure-venv
+ensure-venv: ## Create Python virtual environment with uv
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		uv venv .venv; \
+	fi
+
+# Install development tools
+.PHONY: install-dev-tools
+install-dev-tools: ensure-venv ## Install development tools (flake8, black, mypy)
+	@echo "Installing development tools..."
+	@uv pip install flake8 black mypy
+	@echo "Development tools installed."
+
+# Python linting with flake8 via uv
+.PHONY: lint
+lint: install-dev-tools ## Run flake8 linter on Python code
+	@echo "Linting Python code..."
+	@.venv/bin/flake8 algorithms/ tests/
+	@echo "Lint complete."
+
+# Format Python code with Black
+.PHONY: format
+format: install-dev-tools ## Format Python code with Black
+	@echo "Formatting Python code..."
+	@.venv/bin/black algorithms/ tests/
+	@echo "Format complete."
+
+# Type check Python code with mypy
+.PHONY: typecheck
+typecheck: install-dev-tools ## Run mypy type checking
+	@echo "Running type checks..."
+	@.venv/bin/mypy --config-file mypy.ini --namespace-packages --explicit-package-bases algorithms/*.py tests/*.py
+	@echo "Type check complete."
+
+
+.PHONY: check-all
+check-all: lint format typecheck ## Run all checks (lint, format, typecheck)
+	@echo "All checks completed."
+
+
+.PHONY: check-secrets
+check-secrets: ## Check for required secrets and set up .env file
+	@if [ ! -f ".env" ]; then \
+		echo "No .env file found. Checking for GitHub auth..."; \
+		if gh auth status &>/dev/null; then \
+			./get_secrets.sh; \
+		else \
+			echo "Error: No .env file and GitHub CLI not authenticated."; \
+			echo "Either:"; \
+			echo "  1. Run 'gh auth login' and then 'make check-secrets' again"; \
+			echo "  2. Create a .env file manually based on .envrc.example"; \
+			exit 1; \
+		fi; \
+	else \
+		echo ".env file found, using existing secrets"; \
+	fi
+
+
+
+list-mcp-tools: ## List MCP tools from the Pydantic Python server
+	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+
+mcp-tools: ## List MCP tools with prettier formatting
+	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | \
+	jq '.result.tools[] | {name, description}'
+
+
+add: ## Simple addition example using MCP run-python
+	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(40 + 2)"}}, "id": 2}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.output.stdout'
+
+
+list-mcp-resources: ## List available MCP resources
+	@echo '{"jsonrpc": "2.0", "method": "resources/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+
+list-mcp-prompts: ## List available MCP prompts
+	@echo '{"jsonrpc": "2.0", "method": "prompts/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+
+README.md: README.org ## Generate Markdown for PyPi and uv
+	emacs --batch -l org --eval "(progn (find-file \"README.org\") (org-md-export-to-markdown))"
+>>>>>>> 508665f (feat: improve Makefile help target with dynamic target listing)
