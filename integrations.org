@@ -1,0 +1,1323 @@
+#+TITLE: MCP Integrations
+#+AUTHOR: Jason Walsh
+#+OPTIONS: toc:3 num:3 ^:nil
+#+PROPERTY: header-args:emacs-lisp :tangle yes
+#+PROPERTY: header-args:json :tangle yes
+#+PROPERTY: header-args:sh :tangle yes
+
+* Introduction
+
+This document contains configuration files for integrating the Model Context Protocol (MCP) with various environments:
+- VS Code
+- Emacs
+- Shell scripts
+- Claude Desktop
+- Claude Code
+- Cursor
+
+Each source block is configured to tangle to the appropriate location in the ~integrations~ directory.
+
+* Core MCP Configuration
+
+** Base MCP Configuration
+:PROPERTIES:
+:ID:       config
+:END:
+
+#+begin_src json :tangle integrations/mcp/config.json :mkdirp yes
+{
+  "version": "1.0.0",
+  "description": "Core MCP configuration for isolated-pymcp",
+  "defaultServers": {
+    "runPython": "http://localhost:3001",
+    "memory": "http://localhost:3002",
+    "filesystem": "http://localhost:3003",
+    "github": "http://localhost:3004"
+  },
+  "timeout": 30000,
+  "isolationMode": "strict",
+  "logging": {
+    "level": "info",
+    "format": "json"
+  }
+}
+#+end_src
+
+** MCP Servers Configuration
+:PROPERTIES:
+:ID:       servers
+:END:
+
+#+begin_src json :tangle integrations/mcp/mcp-servers.json :mkdirp yes
+{
+  "servers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"],
+      "port": 3001,
+      "description": "Python code execution in an isolated Pyodide environment"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "port": 3002,
+      "description": "In-memory key-value store for session persistence"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "port": 3003,
+      "description": "Sandboxed filesystem operations"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "port": 3004,
+      "description": "GitHub operations (read-only mode without token)"
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "description": "HTTP requests with isolation"
+    }
+  }
+}
+#+end_src
+
+* Environment-Specific Configurations
+
+** VS Code Configuration
+:PROPERTIES:
+:ID:       vscode
+:END:
+
+#+begin_src json :tangle integrations/mcp/environments/vscode.json :mkdirp yes
+{
+  "mcp.servers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    }
+  },
+  "mcp.autoStart": true,
+  "mcp.logLevel": "info",
+  "mcp.defaultTimeoutMs": 30000,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+#+end_src
+
+** Emacs Configuration
+:PROPERTIES:
+:ID:       emacs
+:END:
+
+#+begin_src emacs-lisp :tangle integrations/mcp/environments/emacs.el :mkdirp yes
+;;; mcp.el --- Model Context Protocol integration for Emacs -*- lexical-binding: t; -*-
+
+;; Author: Jason Walsh <jwalsh@defrecord.com>
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "27.1") (json "1.5") (request "0.3.2"))
+;; Keywords: tools, ai, mcp
+;; URL: https://github.com/jwalsh/isolated-pymcp
+
+;;; Commentary:
+;; Provides integration with Model Context Protocol servers for Emacs.
+;; This allows running isolated Python code and other MCP-enabled services.
+
+;;; Code:
+
+(require 'json)
+(require 'request)
+
+(defgroup mcp nil
+  "Settings for Model Context Protocol integration."
+  :group 'tools
+  :prefix "mcp-")
+
+(defcustom mcp-servers-alist
+  '((run-python . ("deno" "run" "-N" "-R=node_modules" "-W=node_modules" "--node-modules-dir=auto" "--allow-read=." "jsr:@pydantic/mcp-run-python" "stdio"))
+    (memory . ("npx" "-y" "@modelcontextprotocol/server-memory"))
+    (filesystem . ("npx" "-y" "@modelcontextprotocol/server-filesystem"))
+    (github . ("npx" "-y" "@modelcontextprotocol/server-github")))
+  "Alist of MCP servers and their start commands."
+  :type '(alist :key-type symbol :value-type (repeat string))
+  :group 'mcp)
+
+(defcustom mcp-default-timeout 30000
+  "Default timeout in milliseconds for MCP requests."
+  :type 'integer
+  :group 'mcp)
+
+(defcustom mcp-log-level "info"
+  "Log level for MCP operations."
+  :type '(choice (const "debug") (const "info") (const "warn") (const "error"))
+  :group 'mcp)
+
+;; Process management for MCP servers
+(defvar mcp--server-processes nil
+  "Alist of running MCP server processes.")
+
+(defun mcp-start-server (server-type)
+  "Start an MCP server of type SERVER-TYPE."
+  (interactive (list (completing-read "Server type: " (mapcar #'car mcp-servers-alist))))
+  (let* ((server-type-sym (if (symbolp server-type) server-type (intern server-type)))
+         (command-args (alist-get server-type-sym mcp-servers-alist))
+         (proc-name (format "mcp-%s" server-type-sym))
+         (buffer-name (format "*%s*" proc-name)))
+    (when (process-live-p (alist-get server-type-sym mcp--server-processes))
+      (user-error "MCP %s server is already running" server-type-sym))
+    (let ((proc (apply #'start-process proc-name buffer-name command-args)))
+      (setf (alist-get server-type-sym mcp--server-processes) proc)
+      (message "Started MCP %s server" server-type-sym)
+      proc)))
+
+(defun mcp-stop-server (server-type)
+  "Stop the MCP server of type SERVER-TYPE."
+  (interactive (list (completing-read "Server type: " 
+                                      (mapcar #'car mcp--server-processes))))
+  (let* ((server-type-sym (if (symbolp server-type) server-type (intern server-type)))
+         (proc (alist-get server-type-sym mcp--server-processes)))
+    (when (process-live-p proc)
+      (delete-process proc)
+      (setf (alist-get server-type-sym mcp--server-processes) nil)
+      (message "Stopped MCP %s server" server-type-sym))))
+
+(defun mcp-start-all-servers ()
+  "Start all configured MCP servers."
+  (interactive)
+  (dolist (server (mapcar #'car mcp-servers-alist))
+    (mcp-start-server server)))
+
+(defun mcp-stop-all-servers ()
+  "Stop all running MCP servers."
+  (interactive)
+  (dolist (server (mapcar #'car mcp--server-processes))
+    (mcp-stop-server server)))
+
+;; MCP function calls
+(defun mcp-call-function (server-type method &optional params)
+  "Call METHOD on SERVER-TYPE MCP server with optional PARAMS."
+  (unless (alist-get server-type mcp--server-processes)
+    (mcp-start-server server-type))
+  (let ((url (format "http://localhost:%d" 
+                     (pcase server-type
+                       ('run-python 3001)
+                       ('memory 3002)
+                       ('filesystem 3003)
+                       ('github 3004)
+                       (_ (user-error "Unknown server type: %s" server-type)))))
+        (request-data (json-encode 
+                       `(("jsonrpc" . "2.0")
+                         ("method" . ,method)
+                         ("params" . ,(or params :json-null))
+                         ("id" . 1)))))
+    (with-current-buffer (get-buffer-create "*mcp-result*")
+      (erase-buffer)
+      (request url
+        :type "POST"
+        :data request-data
+        :headers '(("Content-Type" . "application/json"))
+        :parser 'json-read
+        :sync t
+        :timeout mcp-default-timeout
+        :success (cl-function
+                  (lambda (&key data &allow-other-keys)
+                    (with-current-buffer "*mcp-result*"
+                      (insert (json-encode data))
+                      (json-pretty-print-buffer)
+                      (display-buffer (current-buffer)))))
+        :error (cl-function
+                (lambda (&key error-thrown &allow-other-keys)
+                  (with-current-buffer "*mcp-result*"
+                    (insert (format "Error: %S" error-thrown))
+                    (display-buffer (current-buffer))))))
+      (current-buffer))))
+
+;; Python execution specific functions
+(defun mcp-run-python-code (code)
+  "Run Python CODE using MCP run-python server."
+  (interactive "sPython code: ")
+  (mcp-call-function 'run-python "tools/call" 
+                     `(("name" . "run_python_code")
+                       ("arguments" . (("python_code" . ,code))))))
+
+(defun mcp-run-python-region (start end)
+  "Run Python code in region from START to END using MCP."
+  (interactive "r")
+  (mcp-run-python-code (buffer-substring-no-properties start end)))
+
+;; Org-babel integration for MCP Python
+(defun org-babel-execute:mcp-python (body params)
+  "Execute Python BODY code block using MCP with PARAMS."
+  (with-temp-buffer
+    (insert body)
+    (let ((result (mcp-run-python-code body)))
+      (with-current-buffer result
+        (let* ((json-object-type 'plist)
+               (json-data (json-read-from-string (buffer-string)))
+               (content (plist-get (plist-get (plist-get json-data :result) :content) 0))
+               (output-text (plist-get content :text)))
+          output-text)))))
+
+;; Register the org-babel language
+(with-eval-after-load 'org
+  (add-to-list 'org-babel-load-languages '(mcp-python . t))
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
+(provide 'mcp)
+;;; mcp.el ends here
+#+end_src
+
+** Shell Helpers
+:PROPERTIES:
+:ID:       shell
+:END:
+
+#+begin_src sh :tangle integrations/mcp/environments/shell-helpers.sh :mkdirp yes
+#!/bin/bash
+# Shell helpers for MCP servers
+
+# Configuration
+MCP_RUNPYTHON_PORT=3001
+MCP_MEMORY_PORT=3002
+MCP_FILESYSTEM_PORT=3003
+MCP_GITHUB_PORT=3004
+MCP_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Ensure required commands exist
+check_requirements() {
+  local missing_cmds=()
+  
+  for cmd in deno npx jq curl; do
+    if ! command -v "$cmd" &> /dev/null; then
+      missing_cmds+=("$cmd")
+    fi
+  done
+  
+  if [ ${#missing_cmds[@]} -gt 0 ]; then
+    echo "Error: The following commands are required but missing: ${missing_cmds[*]}"
+    echo "Please install them before using MCP shell helpers."
+    return 1
+  fi
+  
+  return 0
+}
+
+# Start MCP servers
+start_mcp_server() {
+  local server_type="$1"
+  
+  case "$server_type" in
+    runpython|python)
+      echo "Starting MCP Run Python server on port $MCP_RUNPYTHON_PORT..."
+      deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+        --allow-read="$MCP_BASE_DIR" jsr:@pydantic/mcp-run-python stdio > /tmp/mcp-runpython.log 2>&1 &
+      echo $! > /tmp/mcp-runpython.pid
+      ;;
+    memory)
+      echo "Starting MCP Memory server on port $MCP_MEMORY_PORT..."
+      npx -y @modelcontextprotocol/server-memory > /tmp/mcp-memory.log 2>&1 &
+      echo $! > /tmp/mcp-memory.pid
+      ;;
+    filesystem|fs)
+      echo "Starting MCP Filesystem server on port $MCP_FILESYSTEM_PORT..."
+      npx -y @modelcontextprotocol/server-filesystem > /tmp/mcp-filesystem.log 2>&1 &
+      echo $! > /tmp/mcp-filesystem.pid
+      ;;
+    github|gh)
+      echo "Starting MCP GitHub server on port $MCP_GITHUB_PORT..."
+      npx -y @modelcontextprotocol/server-github > /tmp/mcp-github.log 2>&1 &
+      echo $! > /tmp/mcp-github.pid
+      ;;
+    all)
+      start_mcp_server runpython
+      start_mcp_server memory
+      start_mcp_server filesystem
+      start_mcp_server github
+      ;;
+    *)
+      echo "Unknown server type: $server_type"
+      echo "Available types: runpython, memory, filesystem, github, all"
+      return 1
+      ;;
+  esac
+  
+  return 0
+}
+
+# Stop MCP servers
+stop_mcp_server() {
+  local server_type="$1"
+  
+  case "$server_type" in
+    runpython|python)
+      if [ -f /tmp/mcp-runpython.pid ]; then
+        echo "Stopping MCP Run Python server..."
+        kill "$(cat /tmp/mcp-runpython.pid)" 2>/dev/null
+        rm -f /tmp/mcp-runpython.pid
+      fi
+      ;;
+    memory)
+      if [ -f /tmp/mcp-memory.pid ]; then
+        echo "Stopping MCP Memory server..."
+        kill "$(cat /tmp/mcp-memory.pid)" 2>/dev/null
+        rm -f /tmp/mcp-memory.pid
+      fi
+      ;;
+    filesystem|fs)
+      if [ -f /tmp/mcp-filesystem.pid ]; then
+        echo "Stopping MCP Filesystem server..."
+        kill "$(cat /tmp/mcp-filesystem.pid)" 2>/dev/null
+        rm -f /tmp/mcp-filesystem.pid
+      fi
+      ;;
+    github|gh)
+      if [ -f /tmp/mcp-github.pid ]; then
+        echo "Stopping MCP GitHub server..."
+        kill "$(cat /tmp/mcp-github.pid)" 2>/dev/null
+        rm -f /tmp/mcp-github.pid
+      fi
+      ;;
+    all)
+      stop_mcp_server runpython
+      stop_mcp_server memory
+      stop_mcp_server filesystem
+      stop_mcp_server github
+      ;;
+    *)
+      echo "Unknown server type: $server_type"
+      echo "Available types: runpython, memory, filesystem, github, all"
+      return 1
+      ;;
+  esac
+  
+  return 0
+}
+
+# Run Python code via MCP
+run_python() {
+  local code="$1"
+  local port="${2:-$MCP_RUNPYTHON_PORT}"
+  local request='{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "run_python_code",
+      "arguments": {
+        "python_code": "'"$code"'"
+      }
+    },
+    "id": 1
+  }'
+  
+  curl -s -X POST "http://localhost:$port" \
+    -H "Content-Type: application/json" \
+    -d "$request" | jq
+}
+
+# List available tools on an MCP server
+list_mcp_tools() {
+  local server_type="$1"
+  local port
+  
+  case "$server_type" in
+    runpython|python) port="$MCP_RUNPYTHON_PORT" ;;
+    memory) port="$MCP_MEMORY_PORT" ;;
+    filesystem|fs) port="$MCP_FILESYSTEM_PORT" ;;
+    github|gh) port="$MCP_GITHUB_PORT" ;;
+    *)
+      echo "Unknown server type: $server_type"
+      echo "Available types: runpython, memory, filesystem, github"
+      return 1
+      ;;
+  esac
+  
+  local request='{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": 1
+  }'
+  
+  curl -s -X POST "http://localhost:$port" \
+    -H "Content-Type: application/json" \
+    -d "$request" | jq '.result.tools[] | {name, description}'
+}
+
+# Warmup the MCP Run Python server
+warmup_mcp_python() {
+  echo "Warming up MCP Run Python server..."
+  run_python "print('Hello from MCP Python!')" > /dev/null
+  echo "Warmup complete."
+}
+
+# Main entry point
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  # Script is being executed directly
+  check_requirements || exit 1
+  
+  case "$1" in
+    start)
+      start_mcp_server "${2:-all}"
+      ;;
+    stop)
+      stop_mcp_server "${2:-all}"
+      ;;
+    run)
+      shift
+      run_python "$*"
+      ;;
+    list)
+      list_mcp_tools "${2:-runpython}"
+      ;;
+    warmup)
+      warmup_mcp_python
+      ;;
+    *)
+      echo "Usage: $0 {start|stop|run|list|warmup} [args...]"
+      echo ""
+      echo "Commands:"
+      echo "  start [server]    Start MCP server(s) (default: all)"
+      echo "  stop [server]     Stop MCP server(s) (default: all)"
+      echo "  run <code>        Run Python code via MCP"
+      echo "  list [server]     List tools on the specified server"
+      echo "  warmup            Warm up the MCP Run Python server"
+      echo ""
+      echo "Server types: runpython, memory, filesystem, github, all"
+      exit 1
+      ;;
+  esac
+fi
+#+end_src
+
+** Claude Desktop Configuration
+:PROPERTIES:
+:ID:       claude-desktop
+:END:
+
+#+begin_src json :tangle integrations/mcp/environments/claude-desktop.json :mkdirp yes
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    }
+  },
+  "serverPreferences": {
+    "autoStart": true,
+    "timeoutMs": 30000,
+    "logLevel": "info",
+    "pythonEnvironment": {
+      "packages": ["numpy", "pandas", "matplotlib"]
+    },
+    "defaultPrompt": "You are using MCP to run isolated Python code. Available tools include run_python_code, memory_store, and filesystem_operations."
+  },
+  "ui": {
+    "showServerStatus": true,
+    "enableRichOutput": true,
+    "theme": "system"
+  }
+}
+#+end_src
+
+** Claude Code Configuration
+:PROPERTIES:
+:ID:       claude-code
+:END:
+
+#+begin_src json :tangle integrations/mcp/environments/claude-code.json :mkdirp yes
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    }
+  },
+  "codeTools": {
+    "pythonExecution": {
+      "useIsolation": true,
+      "allowedModules": ["numpy", "pandas", "matplotlib", "json", "re", "math", "datetime"]
+    },
+    "restrictions": {
+      "disableNetworkAccess": true,
+      "disableFileSystem": false,
+      "limitedFileSystemAccess": true,
+      "allowedPaths": ["./algorithms", "./tests", "./examples"]
+    }
+  },
+  "prompts": {
+    "pythonAnalysis": "Analyze this Python code for performance issues and security concerns.",
+    "pythonExecution": "Execute this isolated Python code and return the results."
+  }
+}
+#+end_src
+
+** Cursor Configuration
+:PROPERTIES:
+:ID:       cursor
+:END:
+
+#+begin_src json :tangle integrations/mcp/environments/cursor.json :mkdirp yes
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    }
+  },
+  "editorConfig": {
+    "autoConnectMcp": true,
+    "aiAssistanceConfig": {
+      "enableCodeAnalysis": true,
+      "enableLintingFixes": true,
+      "codeCompletionProvider": "anthropic",
+      "contextWindowSize": "16k"
+    },
+    "shortcuts": {
+      "runWithMcp": "ctrl+shift+r",
+      "analyzeWithMcp": "ctrl+shift+a"
+    }
+  },
+  "isolation": {
+    "mode": "strict",
+    "allowedModules": ["numpy", "pandas", "matplotlib"],
+    "timeout": 30000
+  }
+}
+#+end_src
+
+* Examples and Documentation
+
+** Basic Usage Example
+:PROPERTIES:
+:ID:       basic-usage
+:END:
+
+#+begin_src markdown :tangle integrations/mcp/examples/basic-usage.md :mkdirp yes
+# Basic MCP Usage Examples
+
+This document provides simple examples of using the Model Context Protocol (MCP) for code execution and other operations in isolated environments.
+
+## Running Python Code
+
+### Using the CLI
+
+```bash
+# Start the MCP Run Python server
+source integrations/mcp/environments/shell-helpers.sh
+start_mcp_server runpython
+
+# Run a simple Python calculation
+run_python "result = 2 + 2; print(f'The answer is {result}'); result"
+```
+
+### Using VS Code
+
+1. Install the MCP extension (if available)
+2. Configure the extension using the settings in `integrations/mcp/environments/vscode.json`
+3. Create a new file with Python code
+4. Use the command palette to run the code with MCP
+
+### Using Emacs
+
+```elisp
+;; Load the MCP Emacs integration
+(require 'mcp)
+
+;; Start the MCP Run Python server
+(mcp-start-server 'run-python)
+
+;; Run some Python code
+(mcp-run-python-code "result = 2 + 2; print(f'The answer is {result}'); result")
+```
+
+## Using the Memory Server
+
+The Memory server provides a key-value store that persists for the session lifetime:
+
+```bash
+# Start the MCP Memory server
+start_mcp_server memory
+
+# Use curl to store a value
+curl -X POST http://localhost:3002 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "tools/call", 
+    "params": {
+      "name": "memory_store", 
+      "arguments": {
+        "key": "example_key", 
+        "value": "example_value"
+      }
+    }, 
+    "id": 1
+  }'
+
+# Use curl to retrieve the value
+curl -X POST http://localhost:3002 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "tools/call", 
+    "params": {
+      "name": "memory_retrieve", 
+      "arguments": {
+        "key": "example_key"
+      }
+    }, 
+    "id": 2
+  }'
+```
+
+## Using the Filesystem Server
+
+The Filesystem server provides sandboxed file operations:
+
+```bash
+# Start the MCP Filesystem server
+start_mcp_server filesystem
+
+# List files in the current directory
+curl -X POST http://localhost:3003 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "tools/call", 
+    "params": {
+      "name": "list_directory", 
+      "arguments": {
+        "path": "."
+      }
+    }, 
+    "id": 1
+  }'
+```
+#+end_src
+
+** Python Isolation Example
+:PROPERTIES:
+:ID:       python-isolation
+:END:
+
+#+begin_src markdown :tangle integrations/mcp/examples/python-isolation.md :mkdirp yes
+# Python Isolation with MCP
+
+This document demonstrates how to use the Model Context Protocol (MCP) to run Python code in an isolated environment.
+
+## What is Isolation?
+
+When running untrusted or experimental code, isolation provides a layer of security by restricting:
+- File system access
+- Network access
+- Process creation
+- System command execution
+
+The MCP Run Python server uses Pyodide, a version of Python that runs in WebAssembly, to provide this isolation.
+
+## Example: Safe Code Execution
+
+```python
+# This code runs in an isolated environment
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate some data
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create a plot
+plt.figure(figsize=(8, 4))
+plt.plot(x, y)
+plt.title('Sine Wave')
+plt.xlabel('x')
+plt.ylabel('sin(x)')
+
+# Instead of plt.show(), which won't work in isolation, 
+# we can return a base64 encoded image
+from io import BytesIO
+import base64
+
+buf = BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+img_str = base64.b64encode(buf.read()).decode('utf-8')
+
+# Return the image data
+f"data:image/png;base64,{img_str}"
+```
+
+## Limitations of Isolation
+
+The isolated environment has some limitations:
+
+1. **No filesystem access** - You can't read or write files on the host system
+2. **No network access** - You can't make HTTP requests or open network connections
+3. **Limited library support** - Only libraries available in Pyodide can be used
+4. **Memory constraints** - The environment has limited memory
+5. **Execution time limits** - Long-running calculations may time out
+
+## Running the Example
+
+### Using the Shell Helper
+
+```bash
+source integrations/mcp/environments/shell-helpers.sh
+start_mcp_server runpython
+
+# Save the example code to a file
+cat > example.py << 'EOF'
+import numpy as np
+import matplotlib.pyplot as plt
+# ... rest of the example code ...
+EOF
+
+# Run the code
+run_python "$(cat example.py)"
+```
+
+### Using Emacs
+
+```elisp
+;; Load the MCP Emacs integration
+(require 'mcp)
+
+;; Start the MCP Run Python server
+(mcp-start-server 'run-python)
+
+;; Open a file with the example code and select the region
+;; Then run:
+M-x mcp-run-python-region
+```
+
+### Using Claude Desktop or Claude Code
+
+1. Configure Claude with the appropriate MCP configuration
+2. Start a new conversation
+3. Ask Claude to run the example code
+4. Claude will use the MCP Run Python server to execute the code in isolation
+5. Results will be displayed in the conversation
+#+end_src
+
+** Memory Store Example
+:PROPERTIES:
+:ID:       memory-store
+:END:
+
+#+begin_src markdown :tangle integrations/mcp/examples/memory-store.md :mkdirp yes
+# MCP Memory Server Examples
+
+This document provides examples of using the MCP Memory server for stateful operations within an isolated environment.
+
+## What is the Memory Server?
+
+The MCP Memory server provides a simple key-value store that can be used to persist data between calls. This is useful for:
+
+- Storing state between function calls
+- Caching computation results
+- Passing data between different parts of your application
+- Building up complex data structures incrementally
+
+## Basic Key-Value Operations
+
+### Storing a Value
+
+```javascript
+// Example using JavaScript client
+async function storeValue() {
+  const response = await fetch("http://localhost:3002", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "memory_store",
+        arguments: {
+          key: "user_preferences",
+          value: {
+            theme: "dark",
+            fontSize: 14,
+            showLineNumbers: true
+          }
+        }
+      },
+      id: 1
+    })
+  });
+  
+  return await response.json();
+}
+```
+
+### Retrieving a Value
+
+```javascript
+// Example using JavaScript client
+async function retrieveValue() {
+  const response = await fetch("http://localhost:3002", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "memory_retrieve",
+        arguments: {
+          key: "user_preferences"
+        }
+      },
+      id: 2
+    })
+  });
+  
+  return await response.json();
+}
+```
+
+### Deleting a Value
+
+```javascript
+// Example using JavaScript client
+async function deleteValue() {
+  const response = await fetch("http://localhost:3002", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "memory_delete",
+        arguments: {
+          key: "user_preferences"
+        }
+      },
+      id: 3
+    })
+  });
+  
+  return await response.json();
+}
+```
+
+## Example: Building a Chat History
+
+This example shows how to use the Memory server to build up a chat history:
+
+```python
+# Using Python with the run-python MCP server
+import json
+import requests
+
+# Function to add a message to the chat history
+def add_message(role, content):
+    # First, retrieve the existing chat history
+    response = requests.post(
+        "http://localhost:3002",
+        json={
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "memory_retrieve",
+                "arguments": {
+                    "key": "chat_history"
+                }
+            },
+            "id": 1
+        }
+    )
+    
+    result = response.json()
+    
+    # Get the existing chat history or initialize if it doesn't exist
+    if "error" in result:
+        chat_history = []
+    else:
+        chat_history = result["result"]["memory_value"]
+    
+    # Add the new message
+    chat_history.append({"role": role, "content": content})
+    
+    # Store the updated chat history
+    response = requests.post(
+        "http://localhost:3002",
+        json={
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "memory_store",
+                "arguments": {
+                    "key": "chat_history",
+                    "value": chat_history
+                }
+            },
+            "id": 2
+        }
+    )
+    
+    return response.json()
+
+# Add some messages
+add_message("user", "Hello, how are you?")
+add_message("assistant", "I'm doing well, thank you! How can I help you today?")
+add_message("user", "I'd like to learn about MCP.")
+
+# Retrieve the full chat history
+response = requests.post(
+    "http://localhost:3002",
+    json={
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": "memory_retrieve",
+            "arguments": {
+                "key": "chat_history"
+            }
+        },
+        "id": 3
+    }
+)
+
+print(json.dumps(response.json(), indent=2))
+```
+
+## Benefits of Using the Memory Server
+
+1. **Stateful Operations**: Maintain state between calls without using a full database
+2. **Isolation**: Data is isolated within the MCP environment
+3. **Simplicity**: Simple key-value interface is easy to use
+4. **Serialization**: Automatically handles JSON serialization/deserialization
+5. **Temporary Storage**: Perfect for session-based data that doesn't need permanent storage
+#+end_src
+
+** README
+:PROPERTIES:
+:ID:       readme
+:END:
+
+#+begin_src markdown :tangle integrations/mcp/README.md :mkdirp yes
+# MCP Integrations
+
+This directory contains configuration files and examples for integrating the Model Context Protocol (MCP) with various environments:
+
+- VS Code
+- Emacs
+- Shell scripts
+- Claude Desktop
+- Claude Code
+- Cursor
+
+## Directory Structure
+
+```
+.
+├── config.json               # Core MCP configuration
+├── mcp-servers.json          # Server definitions
+├── environments/             # Environment-specific configurations
+│   ├── vscode.json           # VS Code settings
+│   ├── emacs.el              # Emacs integration
+│   ├── shell-helpers.sh      # Shell script helpers
+│   ├── claude-desktop.json   # Claude Desktop configuration
+│   ├── claude-code.json      # Claude Code configuration
+│   └── cursor.json           # Cursor configuration
+└── examples/                 # Usage examples
+    ├── basic-usage.md        # Basic usage examples
+    ├── python-isolation.md   # Python isolation examples
+    └── memory-store.md       # Memory server examples
+```
+
+## Quick Start
+
+### 1. Install Dependencies
+
+Ensure you have the following dependencies installed:
+
+- Node.js and npm
+- Deno
+- Python 3.8+
+- Emacs (optional, for Emacs integration)
+
+### 2. Configure Your Environment
+
+#### VS Code
+
+Copy the VS Code configuration to your `.vscode` directory:
+
+```bash
+mkdir -p .vscode
+cp integrations/mcp/environments/vscode.json .vscode/mcp-settings.json
+```
+
+#### Emacs
+
+Add this to your Emacs configuration:
+
+```elisp
+;; Load MCP integration
+(load-file "/path/to/integrations/mcp/environments/emacs.el")
+```
+
+#### Shell
+
+Source the shell helpers in your terminal:
+
+```bash
+source /path/to/integrations/mcp/environments/shell-helpers.sh
+```
+
+### 3. Start MCP Servers
+
+```bash
+# Using shell helpers
+start_mcp_server all
+
+# Or start individual servers
+start_mcp_server runpython
+start_mcp_server memory
+```
+
+### 4. Run Examples
+
+See the `examples/` directory for usage examples.
+
+## Available MCP Servers
+
+This configuration includes the following MCP servers:
+
+1. **Run Python** (Port 3001): Run Python code in an isolated Pyodide environment
+2. **Memory** (Port 3002): In-memory key-value store
+3. **Filesystem** (Port 3003): Sandboxed filesystem operations
+4. **GitHub** (Port 3004): GitHub operations (read-only without token)
+5. **Fetch**: HTTP requests with isolation
+
+## Customization
+
+You can customize the configurations to suit your specific needs:
+
+- Modify port numbers in `config.json`
+- Add additional servers in `mcp-servers.json`
+- Adjust server arguments to change behavior
+
+## Contributing
+
+If you add support for new environments or improve existing configurations, please submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+#+end_src
+
+* Makefile Targets
+:PROPERTIES:
+:ID:       makefile
+:END:
+
+#+begin_src makefile :tangle integrations/mcp/Makefile :mkdirp yes
+# Makefile for MCP integrations
+
+# Default variables
+MCP_BASE_DIR := $(shell pwd)
+MCP_RUNPYTHON_PORT ?= 3001
+MCP_MEMORY_PORT ?= 3002
+MCP_FILESYSTEM_PORT ?= 3003
+MCP_GITHUB_PORT ?= 3004
+
+# Check command existence
+DENO_CMD := $(shell command -v deno 2>/dev/null)
+NPX_CMD := $(shell command -v npx 2>/dev/null)
+UVX_CMD := $(shell command -v uvx 2>/dev/null)
+
+# Default target
+.PHONY: help
+help: ## Display this help message
+	@echo "MCP Integration Makefile"
+	@echo "-------------------------"
+	@echo "Available targets:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# Setup targets
+.PHONY: setup-all
+setup-all: setup-vscode setup-emacs setup-shell setup-claude ## Set up all environments
+
+.PHONY: setup-vscode
+setup-vscode: ## Set up VS Code integration
+	@echo "Setting up VS Code integration..."
+	@mkdir -p .vscode
+	@cp environments/vscode.json .vscode/mcp-settings.json
+	@echo "VS Code integration set up successfully"
+
+.PHONY: setup-emacs
+setup-emacs: ## Set up Emacs integration
+	@echo "Setting up Emacs integration..."
+	@mkdir -p $(HOME)/.emacs.d/lisp
+	@cp environments/emacs.el $(HOME)/.emacs.d/lisp/mcp.el
+	@echo "Emacs integration set up successfully"
+	@echo "Add this to your Emacs configuration:"
+	@echo "(add-to-list 'load-path \"~/.emacs.d/lisp\")"
+	@echo "(require 'mcp)"
+
+.PHONY: setup-shell
+setup-shell: ## Set up shell integration
+	@echo "Setting up shell integration..."
+	@cp environments/shell-helpers.sh $(MCP_BASE_DIR)/mcp-shell-helpers.sh
+	@chmod +x $(MCP_BASE_DIR)/mcp-shell-helpers.sh
+	@echo "Shell integration set up successfully"
+	@echo "Use: source $(MCP_BASE_DIR)/mcp-shell-helpers.sh"
+
+.PHONY: setup-claude
+setup-claude: ## Set up Claude Desktop and Code integration
+	@echo "Setting up Claude integration..."
+	@mkdir -p $(MCP_BASE_DIR)/.claude
+	@cp environments/claude-desktop.json $(MCP_BASE_DIR)/.claude/mcp-config.json
+	@echo "Claude integration set up successfully"
+
+# Server management
+.PHONY: start-servers
+start-servers: check-dependencies ## Start all MCP servers
+	@echo "Starting all MCP servers..."
+	@if [ -z "$(DENO_CMD)" ]; then \
+		echo "Error: Deno not found. Please install Deno."; \
+		exit 1; \
+	fi
+	@if [ -z "$(NPX_CMD)" ]; then \
+		echo "Error: npx not found. Please install Node.js and npm."; \
+		exit 1; \
+	fi
+	@$(DENO_CMD) run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+		--allow-read=$(MCP_BASE_DIR) jsr:@pydantic/mcp-run-python stdio > /tmp/mcp-runpython.log 2>&1 & \
+		echo $$! > /tmp/mcp-runpython.pid
+	@$(NPX_CMD) -y @modelcontextprotocol/server-memory > /tmp/mcp-memory.log 2>&1 & \
+		echo $$! > /tmp/mcp-memory.pid
+	@$(NPX_CMD) -y @modelcontextprotocol/server-filesystem > /tmp/mcp-filesystem.log 2>&1 & \
+		echo $$! > /tmp/mcp-filesystem.pid
+	@$(NPX_CMD) -y @modelcontextprotocol/server-github > /tmp/mcp-github.log 2>&1 & \
+		echo $$! > /tmp/mcp-github.pid
+	@echo "All MCP servers started successfully"
+
+.PHONY: stop-servers
+stop-servers: ## Stop all running MCP servers
+	@echo "Stopping all MCP servers..."
+	@if [ -f /tmp/mcp-runpython.pid ]; then \
+		kill $$(cat /tmp/mcp-runpython.pid) 2>/dev/null || true; \
+		rm -f /tmp/mcp-runpython.pid; \
+	fi
+	@if [ -f /tmp/mcp-memory.pid ]; then \
+		kill $$(cat /tmp/mcp-memory.pid) 2>/dev/null || true; \
+		rm -f /tmp/mcp-memory.pid; \
+	fi
+	@if [ -f /tmp/mcp-filesystem.pid ]; then \
+		kill $$(cat /tmp/mcp-filesystem.pid) 2>/dev/null || true; \
+		rm -f /tmp/mcp-filesystem.pid; \
+	fi
+	@if [ -f /tmp/mcp-github.pid ]; then \
+		kill $$(cat /tmp/mcp-github.pid) 2>/dev/null || true; \
+		rm -f /tmp/mcp-github.pid; \
+	fi
+	@echo "All MCP servers stopped successfully"
+
+# Testing and utilities
+.PHONY: check-dependencies
+check-dependencies: ## Check required dependencies
+	@echo "Checking dependencies..."
+	@missing=""
+	@if [ -z "$(DENO_CMD)" ]; then missing="$$missing deno"; fi
+	@if [ -z "$(NPX_CMD)" ]; then missing="$$missing npm/npx"; fi
+	@if [ ! -z "$$missing" ]; then \
+		echo "Missing dependencies:$$missing"; \
+		echo "Please install the missing dependencies and try again."; \
+		exit 1; \
+	fi
+	@echo "All dependencies are installed"
+
+.PHONY: test-runpython
+test-runpython: ## Test the Run Python MCP server
+	@echo "Testing Run Python MCP server..."
+	@if [ -z "$(DENO_CMD)" ]; then \
+		echo "Error: Deno not found. Please install Deno."; \
+		exit 1; \
+	fi
+	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 2 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
+	$(DENO_CMD) run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+		--allow-read=$(MCP_BASE_DIR) jsr:@pydantic/mcp-run-python stdio
+	@echo "Run Python test completed"
+
+.PHONY: test-memory
+test-memory: ## Test the Memory MCP server
+	@echo "Testing Memory MCP server..."
+	@if [ -z "$(NPX_CMD)" ]; then \
+		echo "Error: npx not found. Please install Node.js and npm."; \
+		exit 1; \
+	fi
+	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
+	$(NPX_CMD) -y @modelcontextprotocol/server-memory
+	@echo "Memory test completed"
+
+.PHONY: test-all
+test-all: test-runpython test-memory ## Test all MCP servers
+
+# Clean up
+.PHONY: clean
+clean: stop-servers ## Clean up temporary files
+	@echo "Cleaning up..."
+	@rm -f /tmp/mcp-*.log
+	@echo "Cleanup complete"
+#+end_src
+
+* Tangling Instructions
+
+To tangle all files from this org file, you can run:
+
+#+begin_src emacs-lisp :tangle no
+(org-babel-tangle)
+#+end_src
+
+This will create the directory structure and all the configuration files in the ~integrations~ directory.

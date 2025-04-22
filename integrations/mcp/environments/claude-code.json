@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    }
+  },
+  "codeTools": {
+    "pythonExecution": {
+      "useIsolation": true,
+      "allowedModules": ["numpy", "pandas", "matplotlib", "json", "re", "math", "datetime"]
+    },
+    "restrictions": {
+      "disableNetworkAccess": true,
+      "disableFileSystem": false,
+      "limitedFileSystemAccess": true,
+      "allowedPaths": ["./algorithms", "./tests", "./examples"]
+    }
+  },
+  "prompts": {
+    "pythonAnalysis": "Analyze this Python code for performance issues and security concerns.",
+    "pythonExecution": "Execute this isolated Python code and return the results."
+  }
+}

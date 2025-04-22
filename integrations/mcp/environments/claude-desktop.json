@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    }
+  },
+  "serverPreferences": {
+    "autoStart": true,
+    "timeoutMs": 30000,
+    "logLevel": "info",
+    "pythonEnvironment": {
+      "packages": ["numpy", "pandas", "matplotlib"]
+    },
+    "defaultPrompt": "You are using MCP to run isolated Python code. Available tools include run_python_code, memory_store, and filesystem_operations."
+  },
+  "ui": {
+    "showServerStatus": true,
+    "enableRichOutput": true,
+    "theme": "system"
+  }
+}

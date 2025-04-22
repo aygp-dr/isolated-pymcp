@@ -1,0 +1,33 @@
+{
+  "servers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"],
+      "port": 3001,
+      "description": "Python code execution in an isolated Pyodide environment"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "port": 3002,
+      "description": "In-memory key-value store for session persistence"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "port": 3003,
+      "description": "Sandboxed filesystem operations"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "port": 3004,
+      "description": "GitHub operations (read-only mode without token)"
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "description": "HTTP requests with isolation"
+    }
+  }
+}
