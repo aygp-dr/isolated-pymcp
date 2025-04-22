@@ -1,0 +1,25 @@
+{
+    "name": "Isolated PyMCP Environment",
+    "image": "mcr.microsoft.com/devcontainers/python:3",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        },
+        "ghcr.io/denoland/denoland/deno:1": {}
+    },
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y emacs-nox graphviz git-core && npm install -g npx && pip install uv && uv pip install pytest",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "jkillian.custom-local-formatters",
+                "denoland.vscode-deno"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "python.linting.enabled": true,
+                "deno.enable": true
+            }
+        }
+    }
+}
