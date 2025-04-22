@@ -173,6 +173,22 @@ typecheck: install-dev-tools
 check-all: lint format typecheck
 	@echo "All checks completed."
 
+# Test MCP with sample payloads
+.PHONY: test-mcp-basic
+test-mcp-basic:
+	@echo "Testing basic MCP functionality with minimal payload..."
+	@curl -s -X POST "http://localhost:$(MCP_RUNPYTHON_PORT)/execute" \
+		-H "Content-Type: application/json" \
+		-d @tests/payloads/minimal_request.json | jq
+
+# Test MCP with complex payloads
+.PHONY: test-mcp-complex
+test-mcp-complex:
+	@echo "Testing MCP with more complex file requests..."
+	@curl -s -X POST "http://localhost:$(MCP_RUNPYTHON_PORT)/execute" \
+		-H "Content-Type: application/json" \
+		-d @tests/payloads/fib_files_request.json | jq
+
 # Check for required secrets and set up .env file
 .PHONY: check-secrets
 check-secrets:

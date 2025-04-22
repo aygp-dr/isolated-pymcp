@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "runPython",
+  "params": {
+    "files": [
+      {
+        "name": "main.py",
+        "content": "import sys\nsys.path.append('.')\nfrom algorithms.fibonacci import fib_iterative, benchmark_fibonacci\n\nprint('Computing Fibonacci with iterative approach:')\nresult = fib_iterative(10)\nprint(f'fib(10) = {result}')\n\nprint('\nBenchmarking Fibonacci implementations:')\nbenchmark_fibonacci(10)",
+        "active": true
+      }
+    ]
+  }
+}
