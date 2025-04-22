@@ -1,0 +1,88 @@
+{
+  "roles": {
+    "engineer": {
+      "description": "Focuses on code quality, tests, and technical implementation",
+      "responsibilities": [
+        "Code quality and correctness",
+        "Test coverage and quality",
+        "Adherence to Python standards",
+        "Type checking and linting"
+      ],
+      "filePatterns": [
+        "algorithms/**/*.py",
+        "tests/**/*.py",
+        "config/**/*.py"
+      ],
+      "commands": [
+        "python -m pytest tests/",
+        "black --check algorithms/ tests/",
+        "mypy algorithms/ tests/",
+        "flake8 algorithms/ tests/"
+      ]
+    },
+    "sre": {
+      "description": "Focuses on performance, benchmarking, and operational concerns",
+      "responsibilities": [
+        "Performance benchmarking",
+        "Resource utilization",
+        "Error handling and recovery",
+        "Monitoring and observability"
+      ],
+      "filePatterns": [
+        "Dockerfile",
+        "docker-compose.yml",
+        "scripts/benchmark.sh",
+        "tests/**/*benchmark*"
+      ],
+      "commands": [
+        "python -m pytest tests/ -m \"benchmark\"",
+        "docker-compose config -q"
+      ]
+    },
+    "manager": {
+      "description": "Focuses on documentation and project alignment",
+      "responsibilities": [
+        "Documentation completeness",
+        "Feature alignment with requirements",
+        "Timeline and sprint planning",
+        "Cross-team coordination"
+      ],
+      "filePatterns": [
+        "docs/**/*.md",
+        "**/*.md",
+        "**/*.org"
+      ],
+      "commands": []
+    },
+    "director": {
+      "description": "Focuses on architectural decisions and strategic direction",
+      "responsibilities": [
+        "Architectural consistency",
+        "Long-term maintainability",
+        "Strategic objectives",
+        "Cross-project dependencies"
+      ],
+      "filePatterns": [
+        "architecture.mmd",
+        "diagrams/**",
+        "**/architecture*"
+      ],
+      "commands": []
+    }
+  },
+  "approvalRules": {
+    "defaultMinApprovals": 1,
+    "criticalPaths": {
+      "security": {
+        "paths": ["**/security/**", "**/*security*"],
+        "requiredRoles": ["engineer", "sre"],
+        "minApprovals": 2
+      },
+      "architecture": {
+        "paths": ["architecture.mmd", "diagrams/**"],
+        "requiredRoles": ["director"],
+        "minApprovals": 1
+      }
+    }
+  }
+}

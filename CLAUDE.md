@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Run Python example**: `python scripts/mcp_simple_example.py` - Tests MCP Python runner
 - **Quick Python**: `./scripts/run_python_code <code>` - Run Python code directly
 - **Analyze algorithm**: `make analyze ALGO=algorithm_name` - Run analysis via MCP
+- **Review PR**: `make review-pr PR=123 [ROLE=engineer|manager|sre|director]` - Review PR with role-based checks
 - **Parametrized test**: `python -m pytest tests/test_file.py::test_name[param]` - Run test with parameter
 
 ## Python Commands (using UV with Python 3.11)

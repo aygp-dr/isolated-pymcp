@@ -7,6 +7,7 @@
 # Default variables if not set in .envrc
 CONTAINER_NAME ?= isolated-pymcp
 IMAGE_NAME ?= isolated-pymcp
+REVIEWER_ROLE ?=
 MCP_RUNPYTHON_PORT ?= 3001
 MCP_MEMORY_PORT ?= 3002
 MCP_FILESYSTEM_PORT ?= 3003
@@ -30,6 +31,7 @@ help:
 	@echo "make clean          - Remove containers and images"
 	@echo "make tangle         - Generate config files from org sources"
 	@echo "make detangle       - Update org files from modified configs"
+	@echo "make review-pr PR=x [ROLE=role] [AUTO_MERGE=--auto-merge] - Review PR with optional role"
 	@echo "make help           - Show this help"
 
 # Build the Docker image
@@ -124,3 +126,18 @@ detangle:
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".claude/preferences.json")'
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
+
+# Review PR
+.PHONY: review-pr
+review-pr:
+	@if [ -z "$(PR)" ]; then \
+		echo "Error: PR not specified"; \
+		echo "Usage: make review-pr PR=123 [ROLE=engineer|manager|sre|director] [AUTO_MERGE=--auto-merge]"; \
+		exit 1; \
+	fi
+	@echo "Reviewing PR #$(PR)..."
+	@if [ -n "$(ROLE)" ]; then \
+		./scripts/review-pr.sh $(PR) $(AUTO_MERGE) --reviewer=$(ROLE); \
+	else \
+		./scripts/review-pr.sh $(PR) $(AUTO_MERGE); \
+	fi
