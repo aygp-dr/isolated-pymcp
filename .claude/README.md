@@ -2,6 +2,20 @@
 
 This directory contains standard command templates for use with Claude Code. These commands provide structured templates for common development tasks.
 
+## Installation
+
+To install these commands to your local Claude Code commands directory:
+
+```bash
+# Make the script executable
+chmod +x .claude/install-commands.sh
+
+# Run the installation script
+./.claude/install-commands.sh
+```
+
+This script will copy the command files to `~/.claude/commands/`, removing the `user:` prefix from the filenames.
+
 ## Available Commands
 
 - `/user:security-review` - Perform a thorough security review of the codebase
