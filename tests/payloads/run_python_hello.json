@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0", 
+  "method": "tools/call", 
+  "params": {
+    "name": "run_python_code", 
+    "input": {
+      "python_code": "print(\"Hello World\")"
+    }
+  }, 
+  "id": 2
+}

@@ -1,0 +1,923 @@
+#+TITLE: Getting Started with Pydantic AI and MCP Run Python
+#+AUTHOR: jwalsh
+#+DATE: 2025-04-22
+#+EMAIL: jwalsh@example.com
+#+LANGUAGE: en
+
+* Introduction to Pydantic AI and MCP
+:PROPERTIES:
+:header-args:bash: :exports both :eval no-export :results output
+:header-args:python: :exports both :eval no-export :results output
+:END:
+
+This tutorial provides a comprehensive introduction to Pydantic AI and the Model Context Protocol (MCP) Run Python server.
+It is designed as a four-hour workshop to help you understand how to leverage these technologies for AI-enhanced Python applications.
+
+** Prerequisites
+
+- Python 3.10+ installed
+- Deno installed (for running the MCP server)
+- Basic knowledge of Python
+- Familiarity with JSON-RPC concepts
+
+** References
+
+- [[https://ai.pydantic.dev/install/#__tabbed_2_2][Pydantic AI Installation Guide]]
+- [[https://github.com/pydantic/pydantic-ai/tree/main/mcp-run-python][MCP Run Python GitHub Repository]]
+- [[https://ai.pydantic.dev/mcp/run-python/][MCP Run Python Documentation]]
+
+* Workshop Schedule
+
+1. Setting up the Environment (30 min)
+2. Understanding MCP Basics (30 min)
+3. Running Python Code with MCP (1 hour)
+4. Implementing Custom Solutions (1 hour)
+5. Integration with Existing Applications (1 hour)
+
+* 1. Setting up the Environment
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/setup.sh
+:END:
+
+** Installing Pydantic AI
+
+#+begin_src bash
+#!/bin/bash
+# Create and activate a virtual environment
+python -m venv pydantic-mcp-venv
+source pydantic-mcp-venv/bin/activate
+
+# Install Pydantic AI with logfire support
+pip install "pydantic-ai[logfire]"
+
+# Verify the installation
+python -c "import pydantic_ai; print(f'Pydantic AI version: {pydantic_ai.__version__}')"
+
+# Install MCP
+pip install mcp
+#+end_src
+
+** Setting up Deno
+
+Deno is required to run the MCP server.
+
+#+begin_src bash
+# Check if Deno is installed
+if ! command -v deno &> /dev/null; then
+    echo "Deno is not installed. Installing now..."
+    curl -fsSL https://deno.land/x/install/install.sh | sh
+    
+    # Add Deno to PATH
+    export DENO_INSTALL="$HOME/.deno"
+    export PATH="$DENO_INSTALL/bin:$PATH"
+    echo 'export DENO_INSTALL="$HOME/.deno"' >> ~/.bashrc
+    echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.bashrc
+else
+    echo "Deno is already installed:"
+    deno --version
+fi
+#+end_src
+
+* 2. Understanding MCP Basics
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/mcp_basics.py
+:END:
+
+** What is MCP?
+
+Model Context Protocol (MCP) is a protocol for communication between AI models and tools. In this workshop, we'll focus on the MCP Run Python server, which allows you to execute Python code from various environments.
+
+** Key Concepts
+
+- JSON-RPC communication
+- Tools and tool inputs
+- Server transports (stdio, HTTP, WebSockets)
+
+#+begin_src python
+"""
+Basic MCP concepts demonstration.
+"""
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def list_tools():
+    """List available tools on the MCP Run Python server."""
+    server_params = StdioServerParameters(
+        command='deno',
+        args=[
+            'run',
+            '-N',
+            '-R=node_modules',
+            '-W=node_modules',
+            '--node-modules-dir=auto',
+            'jsr:@pydantic/mcp-run-python',
+            'stdio',
+        ],
+    )
+    
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            
+            # List available tools
+            tools = await session.list_tools()
+            print(f"Found {len(tools.tools)} tools")
+            
+            for tool in tools.tools:
+                print(f"\nTool name: {tool.name}")
+                print(f"Description: {tool.description.splitlines()[0]}")
+                print(f"Input schema: {tool.inputSchema}")
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(list_tools())
+#+end_src
+
+* 3. Running Python Code with MCP
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/run_python.py
+:END:
+
+** Running Simple Python Code
+
+#+begin_src python
+"""
+Running Python code with MCP.
+"""
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def run_simple_code():
+    """Run a simple Python code example."""
+    code = """
+print("Hello from MCP Run Python!")
+result = 40 + 2
+print(f"The answer is: {result}")
+result
+"""
+    
+    server_params = StdioServerParameters(
+        command='deno',
+        args=[
+            'run',
+            '-N',
+            '-R=node_modules',
+            '-W=node_modules',
+            '--node-modules-dir=auto',
+            'jsr:@pydantic/mcp-run-python',
+            'stdio',
+        ],
+    )
+    
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            
+            print("Running simple Python code...")
+            result = await session.call_tool('run_python_code', {'python_code': code})
+            print("\nResult:")
+            print(result.content[0].text)
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(run_simple_code())
+#+end_src
+
+** Running Code with Dependencies
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/run_with_dependencies.py
+:END:
+
+#+begin_src python
+"""
+Running Python code with dependencies using MCP.
+"""
+import subprocess
+import json
+import sys
+from tempfile import NamedTemporaryFile
+
+def run_with_metadata(code, metadata=None):
+    """Run Python code with dependency metadata."""
+    if metadata is None:
+        metadata = {}
+    
+    with NamedTemporaryFile("w", suffix=".py") as f:
+        # Add metadata block if needed
+        if metadata:
+            f.write("# /// script\n")
+            for k, v in metadata.items():
+                f.write(f"# {k} = {v!r}\n")
+            f.write("# ///\n\n")
+        
+        # Write the actual code
+        f.write(code)
+        f.flush()
+        
+        deno_args = [
+            "deno",
+            "run",
+            "-N",
+            "-R=node_modules",
+            "-W=node_modules",
+            "--node-modules-dir=auto",
+            "--allow-read",
+            "jsr:@pydantic/mcp-run-python",
+            "stdio",
+        ]
+        
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "run_python_code",
+                "arguments": {
+                    "python_code": open(f.name).read()
+                }
+            },
+            "id": 1,
+        }
+        
+        payload_str = json.dumps(payload)
+        
+        result = subprocess.run(
+            deno_args,
+            input=payload_str.encode(),
+            capture_output=True,
+            check=True,
+        )
+        
+        response = json.loads(result.stdout.decode())
+        
+        if "error" in response:
+            print(f"Error: {response['error']}", file=sys.stderr)
+            return None
+        
+        xml_content = response["result"]["content"][0]["text"]
+        print(xml_content)
+        return xml_content
+
+if __name__ == "__main__":
+    # Example with numpy dependency
+    code = """
+import numpy as np
+
+a = np.array([1, 2, 3])
+print("NumPy array:")
+print(a)
+
+# Matrix multiplication
+b = np.array([[1, 2], [3, 4]])
+c = np.array([[5, 6], [7, 8]])
+print("\nMatrix multiplication:")
+print(b @ c)
+
+# Return the result
+b @ c
+"""
+    
+    metadata = {
+        "dependencies": ["numpy"]
+    }
+    
+    print("Running code with NumPy dependency...")
+    run_with_metadata(code, metadata)
+#+end_src
+
+* 4. Implementing Custom Solutions
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/algorithms_runner.py
+:END:
+
+** Running Local Algorithms
+
+#+begin_src python
+"""
+Running local algorithms with MCP.
+"""
+import subprocess
+import json
+import sys
+import os
+from tempfile import NamedTemporaryFile
+
+def run_local_algorithm(algorithm_name, function_name, *args):
+    """
+    Run a local algorithm through MCP.
+    
+    Args:
+        algorithm_name: Name of the algorithm module (without .py)
+        function_name: Name of the function to call
+        *args: Arguments to pass to the function
+    """
+    # Construct the Python code to run
+    args_str = ", ".join(repr(arg) for arg in args)
+    
+    code = f"""
+import sys
+sys.path.append('.')
+from algorithms.{algorithm_name} import {function_name}
+
+# Run the algorithm
+result = {function_name}({args_str})
+print(f"Result of {function_name}({args_str}) = {{result}}")
+
+# Return the result
+result
+"""
+    
+    # Run the code
+    with NamedTemporaryFile("w", suffix=".py") as f:
+        f.write(code)
+        f.flush()
+        
+        deno_args = [
+            "deno",
+            "run",
+            "-N",
+            "-R=node_modules",
+            "-W=node_modules",
+            "--node-modules-dir=auto",
+            "--allow-read",
+            "jsr:@pydantic/mcp-run-python",
+            "stdio",
+        ]
+        
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "run_python_code",
+                "arguments": {
+                    "python_code": open(f.name).read()
+                }
+            },
+            "id": 1,
+        }
+        
+        payload_str = json.dumps(payload)
+        
+        result = subprocess.run(
+            deno_args,
+            input=payload_str.encode(),
+            capture_output=True,
+            check=True,
+        )
+        
+        response = json.loads(result.stdout.decode())
+        
+        if "error" in response:
+            print(f"Error: {response['error']}", file=sys.stderr)
+            return None
+        
+        xml_content = response["result"]["content"][0]["text"]
+        print(xml_content)
+        return xml_content
+
+if __name__ == "__main__":
+    # Example: Run factorial algorithm
+    print("=== Running Factorial Algorithm ===")
+    run_local_algorithm("factorial", "factorial_iterative", 5)
+    
+    # Example: Run Fibonacci algorithm
+    print("\n=== Running Fibonacci Algorithm ===")
+    run_local_algorithm("fibonacci", "fib_iterative", 10)
+    
+    # Example: Run Prime number algorithm
+    print("\n=== Running Prime Number Algorithm ===")
+    run_local_algorithm("primes", "is_prime", 17)
+#+end_src
+
+* 5. Integration with Existing Applications
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/flask_app.py
+:END:
+
+** Building a Flask Web Application
+
+#+begin_src python
+"""
+Flask web application that integrates with MCP Run Python.
+"""
+import json
+import subprocess
+from flask import Flask, request, jsonify, render_template_string
+from tempfile import NamedTemporaryFile
+
+app = Flask(__name__)
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MCP Run Python</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        .output { white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+        .error { color: red; }
+        h1 { color: #333; }
+        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .dependencies { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>MCP Run Python Playground</h1>
+    <div class="dependencies">
+        <label for="dependencies">Dependencies (comma-separated):</label>
+        <input type="text" id="dependencies" name="dependencies" placeholder="numpy,pandas">
+    </div>
+    <textarea id="code" placeholder="Enter your Python code here...">print("Hello from MCP Run Python!")
+result = 40 + 2
+print(f"The answer is: {result}")
+result</textarea>
+    <br>
+    <button onclick="runCode()">Run Code</button>
+    <h2>Output:</h2>
+    <div id="output" class="output"></div>
+
+    <script>
+        function runCode() {
+            const code = document.getElementById('code').value;
+            const dependencies = document.getElementById('dependencies').value.split(',').filter(d => d.trim());
+            
+            fetch('/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, dependencies })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('output').innerHTML = `<div class="error">${data.error}</div>`;
+                } else {
+                    document.getElementById('output').innerText = data.output;
+                }
+            })
+            .catch(error => {
+                document.getElementById('output').innerHTML = `<div class="error">Error: ${error}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
+"""
+
+def run_with_metadata(code, dependencies=None):
+    """Run Python code with dependencies."""
+    metadata = {}
+    if dependencies:
+        metadata["dependencies"] = dependencies
+    
+    with NamedTemporaryFile("w", suffix=".py") as f:
+        # Add metadata block if needed
+        if metadata:
+            f.write("# /// script\n")
+            for k, v in metadata.items():
+                f.write(f"# {k} = {v!r}\n")
+            f.write("# ///\n\n")
+        
+        # Write the actual code
+        f.write(code)
+        f.flush()
+        
+        deno_args = [
+            "deno",
+            "run",
+            "-N",
+            "-R=node_modules",
+            "-W=node_modules",
+            "--node-modules-dir=auto",
+            "--allow-read",
+            "jsr:@pydantic/mcp-run-python",
+            "stdio",
+        ]
+        
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "run_python_code",
+                "arguments": {
+                    "python_code": open(f.name).read()
+                }
+            },
+            "id": 1,
+        }
+        
+        payload_str = json.dumps(payload)
+        
+        try:
+            result = subprocess.run(
+                deno_args,
+                input=payload_str.encode(),
+                capture_output=True,
+                check=True,
+                timeout=30,  # 30 second timeout for safety
+            )
+            
+            response = json.loads(result.stdout.decode())
+            
+            if "error" in response:
+                return {"error": response["error"]["message"]}
+            
+            xml_content = response["result"]["content"][0]["text"]
+            return {"output": xml_content}
+        except subprocess.TimeoutExpired:
+            return {"error": "Code execution timed out"}
+        except Exception as e:
+            return {"error": str(e)}
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE)
+
+@app.route('/run', methods=['POST'])
+def run_code():
+    data = request.json
+    code = data.get('code', '')
+    dependencies = data.get('dependencies', [])
+    
+    result = run_with_metadata(code, dependencies)
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+#+end_src
+
+* Testing and Troubleshooting
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/test_mcp.sh
+:END:
+
+** Common Issues and Solutions
+
+#+begin_src bash
+#!/bin/bash
+
+echo "=== Testing MCP Run Python Setup ==="
+echo
+
+# Check Deno installation
+echo "Checking Deno installation:"
+if command -v deno &> /dev/null; then
+    echo "✅ Deno is installed:"
+    deno --version
+else
+    echo "❌ Deno is not installed. Please install Deno first."
+    exit 1
+fi
+
+# Check if Node modules directory exists
+echo
+echo "Checking Node modules directory:"
+if [ -d "node_modules" ]; then
+    echo "✅ node_modules directory exists"
+else
+    echo "⚠️ node_modules directory not found. Creating it..."
+    mkdir -p node_modules
+fi
+
+# Test running a simple command via MCP
+echo
+echo "Testing MCP Run Python with a simple 'hello world' example:"
+echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(\"Hello, MCP Run Python!\")\nprint(\"2 + 2 =\", 2 + 2)"}}, "id": 1}' | \
+deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto --allow-read=. jsr:@pydantic/mcp-run-python stdio
+
+echo
+echo "Testing complete!"
+#+end_src
+
+* Exercise Solutions
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/exercise_solutions.py
+:END:
+
+#+begin_src python
+"""
+Solutions to the workshop exercises.
+"""
+import subprocess
+import json
+import sys
+from tempfile import NamedTemporaryFile
+
+def run_with_metadata(code, metadata=None):
+    """Run Python code with dependency metadata."""
+    if metadata is None:
+        metadata = {}
+    
+    with NamedTemporaryFile("w", suffix=".py") as f:
+        # Add metadata block if needed
+        if metadata:
+            f.write("# /// script\n")
+            for k, v in metadata.items():
+                f.write(f"# {k} = {v!r}\n")
+            f.write("# ///\n\n")
+        
+        # Write the actual code
+        f.write(code)
+        f.flush()
+        
+        deno_args = [
+            "deno",
+            "run",
+            "-N",
+            "-R=node_modules",
+            "-W=node_modules",
+            "--node-modules-dir=auto",
+            "--allow-read",
+            "jsr:@pydantic/mcp-run-python",
+            "stdio",
+        ]
+        
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "run_python_code",
+                "arguments": {
+                    "python_code": open(f.name).read()
+                }
+            },
+            "id": 1,
+        }
+        
+        payload_str = json.dumps(payload)
+        
+        result = subprocess.run(
+            deno_args,
+            input=payload_str.encode(),
+            capture_output=True,
+            check=True,
+        )
+        
+        response = json.loads(result.stdout.decode())
+        
+        if "error" in response:
+            print(f"Error: {response['error']}", file=sys.stderr)
+            return None
+        
+        xml_content = response["result"]["content"][0]["text"]
+        print(xml_content)
+        return xml_content
+
+# Exercise 1: Run a data analysis with pandas
+def exercise1():
+    print("=== Exercise 1: Data Analysis with Pandas ===\n")
+    code = """
+import pandas as pd
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# Create a sample DataFrame
+data = {
+    'Year': [2018, 2019, 2020, 2021, 2022],
+    'Sales': [150, 200, 180, 250, 300],
+    'Expenses': [130, 150, 170, 190, 220]
+}
+
+df = pd.DataFrame(data)
+print(df)
+
+# Calculate profit
+df['Profit'] = df['Sales'] - df['Expenses']
+print("\nDataFrame with Profit:")
+print(df)
+
+# Summary statistics
+print("\nSummary Statistics:")
+print(df.describe())
+
+# Return the DataFrame
+df
+"""
+    metadata = {
+        "dependencies": ["pandas", "matplotlib"]
+    }
+    
+    run_with_metadata(code, metadata)
+
+# Exercise 2: Run factorial benchmarking
+def exercise2():
+    print("\n=== Exercise 2: Factorial Benchmarking ===\n")
+    code = """
+import sys
+import time
+sys.path.append('.')
+from algorithms.factorial import factorial_iterative, factorial_recursive
+
+def benchmark(func, n, iterations=1000):
+    start_time = time.time()
+    for _ in range(iterations):
+        result = func(n)
+    end_time = time.time()
+    return result, end_time - start_time
+
+print("Benchmarking factorial implementations:")
+n_values = [5, 10, 15, 20]
+
+results = []
+for n in n_values:
+    iter_result, iter_time = benchmark(factorial_iterative, n)
+    rec_result, rec_time = benchmark(factorial_recursive, n)
+    
+    results.append({
+        'n': n,
+        'iterative_result': iter_result,
+        'iterative_time': iter_time,
+        'recursive_result': rec_result,
+        'recursive_time': rec_time
+    })
+
+# Print results
+print("\\nResults:")
+print(f"{'n':<5} {'Iterative Time':<20} {'Recursive Time':<20} {'Ratio (Rec/Iter)':<20}")
+print("-" * 65)
+
+for r in results:
+    ratio = r['recursive_time'] / r['iterative_time']
+    print(f"{r['n']:<5} {r['iterative_time']:<20.6f} {r['recursive_time']:<20.6f} {ratio:<20.2f}")
+
+# Return the results
+results
+"""
+    
+    run_with_metadata(code)
+
+if __name__ == "__main__":
+    exercise1()
+    exercise2()
+#+end_src
+
+* Workshop PDF Export
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/export_pdf.el
+:END:
+
+#+begin_src emacs-lisp
+;; Export Org file to PDF
+(require 'ox-latex)
+(require 'org)
+
+;; Set up document class
+(add-to-list 'org-latex-classes
+             '("workshop"
+               "\\documentclass[11pt,a4paper]{article}
+                \\usepackage[utf8]{inputenc}
+                \\usepackage[T1]{fontenc}
+                \\usepackage{graphicx}
+                \\usepackage{longtable}
+                \\usepackage{hyperref}
+                \\usepackage{natbib}
+                \\usepackage{amssymb}
+                \\usepackage{amsmath}
+                \\usepackage{geometry}
+                \\geometry{margin=1in}
+                \\usepackage{listings}
+                \\usepackage{xcolor}
+                \\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+                \\lstset{
+                  backgroundcolor=\\color{codebg},
+                  basicstyle=\\ttfamily\\small,
+                  breaklines=true,
+                  frame=single,
+                  showstringspaces=false
+                }"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+;; Export the file
+(defun export-pydantic-mcp-tutorial-to-pdf ()
+  "Export the pydantic-mcp-tutorial.org file to PDF."
+  (interactive)
+  (with-current-buffer (find-file-noselect "pydantic-mcp-tutorial.org")
+    (org-latex-export-to-pdf)))
+#+end_src
+
+* GitHub Issue Template
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/github_issue.md
+:END:
+
+#+begin_src markdown
+# Pydantic AI and MCP Run Python Tutorial Workshop
+
+## Overview
+
+Create a 4-hour workshop tutorial for getting started with Pydantic AI and MCP Run Python. This tutorial will be written in org-mode and will include practical exercises, code examples, and integration with our existing algorithms.
+
+## Requirements
+
+1. Create a comprehensive org-mode document that can be tangled to generate usable code and scripts
+2. Cover installation of both Pydantic AI and setup of MCP Run Python
+3. Include practical examples using our existing factorial, fibonacci, and prime number algorithms
+4. Provide a web application example for integration with Flask
+5. Include troubleshooting section and exercise solutions
+
+## References
+
+- [Pydantic AI Installation Guide](https://ai.pydantic.dev/install/#__tabbed_2_2)
+- [MCP Run Python GitHub Repository](https://github.com/pydantic/pydantic-ai/tree/main/mcp-run-python)
+- [MCP Run Python Documentation](https://ai.pydantic.dev/mcp/run-python/)
+
+## Deliverables
+
+- Full org-mode document with tangle blocks
+- Working code examples
+- Flask web application for integration
+- Export to PDF functionality
+
+## Timeline
+
+This should be completed within 2 weeks to be incorporated into our next training cycle.
+
+## Additional Notes
+
+The tutorial should balance theory with hands-on practice, ensuring participants understand not just how to use the tools but why they're useful for our specific use cases.
+#+end_src
+
+* Directory Structure Script
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/setup_directories.sh
+:END:
+
+#+begin_src bash
+#!/bin/bash
+
+# Create the tutorial directory structure
+mkdir -p tutorials/pydantic-mcp/examples
+mkdir -p tutorials/pydantic-mcp/exercises
+mkdir -p tutorials/pydantic-mcp/solutions
+mkdir -p tutorials/pydantic-mcp/web
+mkdir -p tutorials/pydantic-mcp/scripts
+
+# Copy files to appropriate directories
+cp tutorials/pydantic-mcp/mcp_basics.py tutorials/pydantic-mcp/examples/
+cp tutorials/pydantic-mcp/run_python.py tutorials/pydantic-mcp/examples/
+cp tutorials/pydantic-mcp/run_with_dependencies.py tutorials/pydantic-mcp/examples/
+cp tutorials/pydantic-mcp/algorithms_runner.py tutorials/pydantic-mcp/examples/
+cp tutorials/pydantic-mcp/flask_app.py tutorials/pydantic-mcp/web/
+cp tutorials/pydantic-mcp/test_mcp.sh tutorials/pydantic-mcp/scripts/
+cp tutorials/pydantic-mcp/exercise_solutions.py tutorials/pydantic-mcp/solutions/
+cp tutorials/pydantic-mcp/setup.sh tutorials/pydantic-mcp/scripts/
+
+# Make scripts executable
+chmod +x tutorials/pydantic-mcp/scripts/*.sh
+
+echo "Directory structure and files created successfully!"
+#+end_src
+
+* Make the Tutorial Runnable
+:PROPERTIES:
+:tangle: tutorials/pydantic-mcp/Makefile
+:END:
+
+#+begin_src makefile
+# Makefile for the Pydantic AI and MCP Run Python Tutorial
+
+.PHONY: setup test examples solutions run-flask all clean
+
+# Default target
+all: setup examples solutions
+
+# Setup the environment
+setup:
+	@echo "Setting up the environment..."
+	@bash scripts/setup.sh
+
+# Run the test script
+test:
+	@echo "Testing MCP Run Python setup..."
+	@bash scripts/test_mcp.sh
+
+# Run all examples
+examples:
+	@echo "Running basic examples..."
+	@python examples/mcp_basics.py
+	@python examples/run_python.py
+	@python examples/run_with_dependencies.py
+	@python examples/algorithms_runner.py
+
+# Run exercise solutions
+solutions:
+	@echo "Running exercise solutions..."
+	@python solutions/exercise_solutions.py
+
+# Run the Flask web application
+run-flask:
+	@echo "Starting Flask web application..."
+	@python web/flask_app.py
+
+# Clean up generated files
+clean:
+	@echo "Cleaning up generated files..."
+	@rm -rf __pycache__
+	@rm -rf examples/__pycache__
+	@rm -rf solutions/__pycache__
+	@rm -rf web/__pycache__
+#+end_src

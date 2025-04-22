@@ -3,6 +3,7 @@ model-context-protocol>=0.5.0
 python-lsp-server[all]>=1.7.0
 debugpy>=1.6.0
 multilspy>=0.3.0
+mcp-python>=0.3.0
 
 # Testing dependencies
 pytest>=7.3.1

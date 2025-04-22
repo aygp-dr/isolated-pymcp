@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "method": "runPython", 
+  "params": {
+    "files": [
+      {
+        "name": "main.py",
+        "content": "print(40 + 2)",
+        "active": true
+      }
+    ]
+  },
+  "id": 2
+}

@@ -226,9 +226,9 @@ mcp-tools: ## List MCP tools with prettier formatting
 	jq '.result.tools[] | {name, description}'
 
 add: ## Simple addition example using MCP run-python
-	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(40 + 2)"}}, "id": 2}' | \
+	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 40 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
-	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.output.stdout'
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.content[0].text'
 
 list-mcp-resources: ## List available MCP resources
 	@echo '{"jsonrpc": "2.0", "method": "resources/list", "id": 1}' | \
@@ -240,5 +240,113 @@ list-mcp-prompts: ## List available MCP prompts
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
 
+run-fibonacci: ## Run Fibonacci algorithm via MCP server
+	@cat tests/payloads/fib_files_request.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-minimal: ## Run minimal Fibonacci example via MCP server
+	@cat tests/payloads/minimal_request.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-mcp-request: ## Run simple addition via MCP server
+	@cat tests/payloads/mcp_request.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-primes: ## Run primes algorithm via MCP server
+	@cat tests/payloads/primes_request.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-python-hello: ## Run simple Python hello world via tools/call
+	@cat tests/payloads/run_python_hello.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-python-factorial: ## Run factorial algorithm via tools/call
+	@cat tests/payloads/run_python_factorial.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+list-memory-tools: ## List tools from the memory MCP server
+	@cat tests/payloads/tools_list_request.json | \
+	npx -y @modelcontextprotocol/server-memory | jq
+
+test-all-mcp-servers: ## Test all MCP servers with the tools list request
+	@echo "\n=== Testing Python MCP Server ==="
+	@cat tests/payloads/tools_list_request.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+	@echo "\n=== Testing Memory MCP Server ==="
+	@cat tests/payloads/tools_list_request.json | \
+	npx -y @modelcontextprotocol/server-memory | jq
+
+	@echo "\n=== Testing Filesystem MCP Server ==="
+	@cat tests/payloads/tools_list_request.json | \
+	npx -y @modelcontextprotocol/server-filesystem | jq
+
+	@echo "\n=== Testing GitHub MCP Server ==="
+	@cat tests/payloads/tools_list_request.json | \
+	npx -y @modelcontextprotocol/server-github | jq
+
+run-mcp-python: ## Run Python client for MCP server
+	@echo "Running Python client for MCP server..."
+	@python3 mcp_run_python.py
+
+run-python-tool: ## Run Python code with the correct tool_input format
+	@echo "Running Python code with correct tool_input format..."
+	@cat tests/payloads/mcp_run_python_input.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-factorial-script: ## Run the factorial example using inline_script_metadata
+	@echo "Running factorial script with metadata handler..."
+	@python3 run_factorial.py
+	
+run-working-payload: ## Run a working payload with MCP server
+	@echo "Running working payload..."
+	@cat tests/payloads/working_payload.json | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+run-payload: ## Run any payload with MCP server (usage: make run-payload PAYLOAD=primes_request.json)
+	@if [ -z "$(PAYLOAD)" ]; then \
+		echo "Error: PAYLOAD not specified"; \
+		echo "Usage: make run-payload PAYLOAD=primes_request.json"; \
+		exit 1; \
+	fi
+	@if [ ! -f "tests/payloads/$(PAYLOAD)" ]; then \
+		echo "Error: Payload file tests/payloads/$(PAYLOAD) not found"; \
+		echo "Available payloads:"; \
+		ls -1 tests/payloads/*.json | xargs -n1 basename; \
+		exit 1; \
+	fi
+	@echo "Running payload $(PAYLOAD) with MCP server..."
+	@cat tests/payloads/$(PAYLOAD) | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
 README.md: README.org ## Generate Markdown for PyPi and uv
 	emacs --batch -l org --eval "(progn (find-file \"README.org\") (org-md-export-to-markdown))"
+
+
+mcp-warmup: ## Warm up the Pyodide environment
+	@echo "Warming up MCP Run Python server..."
+	@deno run \
+		-N -R=node_modules -W=node_modules --node-modules-dir=auto \
+		--allow-read=. \
+		jsr:@pydantic/mcp-run-python warmup
+
+
+
+mcp-add: ## Run Python code via MCP
+	@echo "Running 2 + 40 calculation via MCP Run Python..."
+	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 2 + 40\nprint(result)\nresult"}}, "id": 1}' | \
+	deno run \
+		-N -R=node_modules -W=node_modules --node-modules-dir=auto \
+		--allow-read=. \
+		jsr:@pydantic/mcp-run-python stdio | jq
+
