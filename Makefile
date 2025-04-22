@@ -43,19 +43,20 @@ build:
 
 # Run the container
 .PHONY: run
-run:
+run: check-secrets
 	@echo "Running $(CONTAINER_NAME) container..."
 	$(DOCKER_CMD) run -d --name $(CONTAINER_NAME) \
-		-e GITHUB_TOKEN="$(GITHUB_TOKEN)" \
-		-e ANTHROPIC_API_KEY="$(ANTHROPIC_API_KEY)" \
-		-p $(MCP_RUNPYTHON_PORT):$(MCP_RUNPYTHON_PORT) \
-		-p $(MCP_MEMORY_PORT):$(MCP_MEMORY_PORT) \
-		-p $(MCP_FILESYSTEM_PORT):$(MCP_FILESYSTEM_PORT) \
-		-p $(MCP_GITHUB_PORT):$(MCP_GITHUB_PORT) \
-		-p $(MCP_MULTILSPY_PORT):$(MCP_MULTILSPY_PORT) \
-		-p $(MCP_PYTHONLSP_PORT):$(MCP_PYTHONLSP_PORT) \
+		--env-file .env \
+		-p 127.0.0.1:$(MCP_RUNPYTHON_PORT):$(MCP_RUNPYTHON_PORT) \
+		-p 127.0.0.1:$(MCP_MEMORY_PORT):$(MCP_MEMORY_PORT) \
+		-p 127.0.0.1:$(MCP_FILESYSTEM_PORT):$(MCP_FILESYSTEM_PORT) \
+		-p 127.0.0.1:$(MCP_GITHUB_PORT):$(MCP_GITHUB_PORT) \
+		-p 127.0.0.1:$(MCP_MULTILSPY_PORT):$(MCP_MULTILSPY_PORT) \
+		-p 127.0.0.1:$(MCP_PYTHONLSP_PORT):$(MCP_PYTHONLSP_PORT) \
 		-v $(PWD)/algorithms:/home/mcp/algorithms \
 		-v $(PWD)/analysis_results:/home/mcp/analysis_results \
+		--memory=1g \
+		--cpus=2 \
 		$(IMAGE_NAME)
 
 # Stop the container
@@ -110,6 +111,9 @@ dirs:
 	@mkdir -p data/{memory,filesystem,github}
 	@mkdir -p .claude
 	@mkdir -p .vscode
+
+README.md: README.org ## uv supported README format + publish support
+	emacs --batch -l org --eval "(progn (find-file \"README.org\") (org-md-export-to-markdown))"
 
 # Tangle org files to generate config files
 .PHONY: tangle
@@ -168,3 +172,53 @@ typecheck: install-dev-tools
 .PHONY: check-all
 check-all: lint format typecheck
 	@echo "All checks completed."
+
+# Check for required secrets and set up .env file
+.PHONY: check-secrets
+check-secrets:
+	@if [ ! -f ".env" ]; then \
+		echo "No .env file found. Checking for GitHub auth..."; \
+		if gh auth status &>/dev/null; then \
+			./get_secrets.sh; \
+		else \
+			echo "Error: No .env file and GitHub CLI not authenticated."; \
+			echo "Either:"; \
+			echo "  1. Run 'gh auth login' and then 'make check-secrets' again"; \
+			echo "  2. Create a .env file manually based on .envrc.example"; \
+			exit 1; \
+		fi; \
+	else \
+		echo ".env file found, using existing secrets"; \
+	fi
+
+
+# Target to list MCP tools from the Pydantic Python server
+list-mcp-tools:
+	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+# Alternative with prettier formatting
+mcp-tools:
+	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | \
+	jq '.result.tools[] | {name, description}'
+
+# Simple addition example
+add:
+	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(40 + 2)"}}, "id": 2}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.output.stdout'
+
+# List available resources
+list-mcp-resources:
+	@echo '{"jsonrpc": "2.0", "method": "resources/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
+
+# List available prompts
+list-mcp-prompts:
+	@echo '{"jsonrpc": "2.0", "method": "prompts/list", "id": 1}' | \
+	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq

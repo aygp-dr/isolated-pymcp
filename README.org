@@ -46,9 +46,13 @@ The project implements a principle of least access architecture:
 
 - Container isolation from host system
 - Non-root user execution within container
-- Limited port exposure
-- Controlled API access via environment variables
+- Restricted port exposure (bound to localhost only)
+- Secure secrets management via GitHub Secrets
+- Resource limits on container (memory, CPU)
+- Input validation and sanitization
 - Clear security domain boundaries between components
+
+See [[./SECURITY.md]] for comprehensive security guidelines and best practices.
 
 ** Core Components
 
@@ -77,17 +81,28 @@ make dirs
 # Generate configuration files from org sources
 make tangle
 
-# Create environment configuration (edit with your API keys)
-cp .envrc.example .envrc
+# Set up GitHub CLI authentication for secrets
+gh auth login
 #+END_SRC
 
-2. Build and run the container:
+2. Set up secrets management:
+
+#+BEGIN_SRC shell
+# Run the secrets setup script
+./setup_secrets.sh
+
+# Update the GitHub secrets with your actual keys
+gh secret edit GITHUB_TOKEN
+gh secret edit ANTHROPIC_API_KEY
+#+END_SRC
+
+3. Build and run the container:
 
 #+BEGIN_SRC shell
 # Build the Docker/Podman image
 make build
 
-# Run the container with mounted volumes
+# Run the container (automatically retrieves secrets)
 make run
 #+END_SRC
 
