@@ -1,13 +1,21 @@
 #+TITLE: isolated-pymcp
 #+AUTHOR: Aidan Pace
 #+EMAIL: apace@defrecord.com
-#+DATE: 2025-04-20
+#+DATE: 2025-04-22
 
 A secure, isolated environment for exploring Python development with Model Context Protocol (MCP) and Language Server Protocol (LSP).
 
 ** Overview
 
 This project creates an isolated container environment that combines MCP and LSP capabilities for Python development. By leveraging the complementary strengths of both protocols, we enable LLMs to access powerful code intelligence features while maintaining strict security boundaries.
+
+The project includes comprehensive algorithm analysis capabilities, Claude Code integration, and educational materials for working with MCP and LSP in Python environments. Key features include:
+
+- Advanced algorithm implementations with complexity analysis
+- Custom Claude commands for GitHub issue resolution
+- Structured milestones for project development
+- Educational course materials for Claude Code training
+- Standardized branch naming and coding conventions
 
 ** Architecture
 
@@ -126,6 +134,17 @@ Key commands:
 - ~make claude-analyze ALGO=fibonacci~ - Use Claude to analyze code
 - ~make tangle~ - Generate config files from org sources
 - ~make detangle~ - Update org files from modified configs
+- ~make install-mcp~ - Install MCP CLI with UV
+- ~make pytest~ - Run all Python tests
+- ~make lint~ - Run all linters (isort, black, mypy, flake8)
+
+*** Custom Claude Commands
+
+The project includes custom commands for Claude Code:
+
+- ~/fix-github-issue~ - Analyze and fix issues from the GitHub repository
+- ~/create-pr~ - Create pull requests with standardized formatting
+- ~/analyze-algorithm~ - Perform detailed analysis of algorithm implementations
 
 The project uses literate programming with org-mode. Configuration files are generated from
 ~env-setup.org~ using the tangle process. If you modify generated files directly, use detangle
@@ -138,6 +157,7 @@ This project follows a literate programming approach with org-mode. Key developm
 - ~env-setup.org~ - Contains configuration for Emacs, VSCode, and Claude Code
 - ~SETUP.org~ - Contains general setup instructions and documentation
 - ~Makefile~ - Provides automation for common development tasks
+- ~CLAUDE.md~ - Contains guidance for Claude Code when working in this repository
 
 When making changes:
 
@@ -145,12 +165,47 @@ When making changes:
 2. For implementation: Follow standard Git workflow with conventional commits
 3. For testing: Add algorithms to ~algorithms/~ directory and use ~make analyze~
 
+*** Branch and Issue Management
+
+The project maintains standardized branch naming conventions:
+- Always create branches from GitHub issues
+- Follow the format: ~<type>/<issue-number>-<short-description>~
+- Types should match conventional commits (feat, fix, docs, etc.)
+
+*** Project Milestones
+
+The project is organized around key milestones:
+
+1. *Security Enhancement* - Hardening container isolation and access controls
+2. *Performance Optimization* - Improving algorithm analysis speed and resource efficiency
+3. *Usability and Developer Experience* - Enhancing tooling and documentation
+4. *Integration and Extensibility* - Adding support for additional protocols and platforms
+5. *Documentation and Community* - Creating educational materials and guides
+
 ** Project Goals
 
 1. Demonstrate secure integration between MCP and LSP
 2. Provide a reference architecture for isolated AI code analysis
 3. Enable exploration of Python algorithm implementations
 4. Support multiple client interfaces while maintaining security
+5. Create educational resources for Claude Code and MCP usage
+6. Build a community-friendly platform for algorithm analysis
+
+** Educational Resources
+
+The project includes educational materials for learning Claude Code and MCP:
+
+- ~docs/courses/claude-code-course.org~ - Comprehensive two-day course on Claude Code
+- ~docs/courses/examples/~ - Example code for Claude Code and MCP integration
+- ~docs/courses/exercises/~ - Hands-on exercises for learning Claude Code
+
+The course covers:
+- API setup and configuration
+- AWS Bedrock integration
+- Custom Claude commands
+- Code review with Claude
+- Multi-language support
+- MCP server development and integration
 
 ** References
 
@@ -161,6 +216,8 @@ When making changes:
 - [[https://github.com/modelcontextprotocol][Model Context Protocol GitHub]] - Official GitHub organization with protocol specification, SDKs, and reference implementations.
 
 - [[https://docs.anthropic.com/en/docs/agents-and-tools/mcp][Anthropic MCP Documentation]] - Integration guides and best practices for using MCP with Claude.
+
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview][Claude Code Documentation]] - Official documentation for Claude Code CLI.
 
 - [[https://github.com/microsoft/multilspy][Microsoft MultilspyLSP]] - The Python library for creating language server clients that powers our LSP integration.
 
