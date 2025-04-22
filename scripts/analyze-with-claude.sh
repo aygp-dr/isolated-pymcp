@@ -15,14 +15,32 @@ RUN_PYTHON_URL="http://localhost:${MCP_RUNPYTHON_PORT:-3001}"
 LSP_URL="http://localhost:${MCP_MULTILSPY_PORT:-3005}"
 OUTPUT_DIR="analysis_results"
 
+# Input validation functions
+validate_algorithm_name() {
+    local algo="$1"
+    # Only allow alphanumeric and underscore characters
+    if ! [[ "$algo" =~ ^[a-zA-Z0-9_]+$ ]]; then
+        echo -e "${RED}Error: Algorithm name can only contain letters, numbers, and underscores${NC}"
+        return 1
+    fi
+    return 0
+}
+
 # Check if algorithm parameter is provided
 if [ -z "$ALGORITHM" ]; then
-    echo "Usage: $0 <algorithm>"
+    echo -e "${RED}Usage: $0 <algorithm>${NC}"
     echo "Example: $0 fibonacci"
     exit 1
 fi
 
-# Check if code file exists
+# Validate algorithm name
+if ! validate_algorithm_name "$ALGORITHM"; then
+    echo "Available algorithms:"
+    ls -1 algorithms/ | grep -E "\.py$" | sed 's/\.py$//'
+    exit 1
+fi
+
+# Check if code file exists (using validated input)
 if [ ! -f "algorithms/$CODE_FILE" ]; then
     echo -e "${RED}Error: File algorithms/$CODE_FILE not found${NC}"
     echo "Available algorithms:"

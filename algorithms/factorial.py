@@ -8,19 +8,18 @@ to demonstrate different approaches and their performance characteristics.
 import math
 import time
 from functools import lru_cache
-from typing import List
 
 
 def factorial_recursive(n: int) -> int:
     """
     Recursive implementation of factorial.
-    
+
     Time complexity: O(n)
     Space complexity: O(n) due to recursion stack
-    
+
     Args:
         n: Number to calculate factorial of
-        
+
     Returns:
         n! (n factorial)
     """
@@ -32,14 +31,14 @@ def factorial_recursive(n: int) -> int:
 def factorial_tail_recursive(n: int, acc: int = 1) -> int:
     """
     Tail-recursive implementation of factorial.
-    
+
     Note: Python doesn't optimize tail recursion, so this still has
     O(n) space complexity due to the recursion stack.
-    
+
     Args:
         n: Number to calculate factorial of
         acc: Accumulator for the result
-        
+
     Returns:
         n! (n factorial)
     """
@@ -52,13 +51,13 @@ def factorial_tail_recursive(n: int, acc: int = 1) -> int:
 def factorial_memoized(n: int) -> int:
     """
     Memoized recursive implementation of factorial.
-    
+
     Time complexity: O(n) for first call, O(1) for repeated calls
     Space complexity: O(n)
-    
+
     Args:
         n: Number to calculate factorial of
-        
+
     Returns:
         n! (n factorial)
     """
@@ -70,13 +69,13 @@ def factorial_memoized(n: int) -> int:
 def factorial_iterative(n: int) -> int:
     """
     Iterative implementation of factorial.
-    
+
     Time complexity: O(n)
     Space complexity: O(1)
-    
+
     Args:
         n: Number to calculate factorial of
-        
+
     Returns:
         n! (n factorial)
     """
@@ -89,10 +88,10 @@ def factorial_iterative(n: int) -> int:
 def factorial_math(n: int) -> int:
     """
     Implementation using Python's math.factorial.
-    
+
     Args:
         n: Number to calculate factorial of
-        
+
     Returns:
         n! (n factorial)
     """
@@ -102,36 +101,36 @@ def factorial_math(n: int) -> int:
 def benchmark_factorial(n: int) -> None:
     """
     Benchmark different factorial implementations.
-    
+
     Args:
         n: Number to calculate factorial of
     """
     print(f"Benchmarking factorial implementations for n={n}")
-    
+
     # Recursive
     start = time.time()
     result = factorial_recursive(n)
     end = time.time()
     print(f"Recursive:      {result} (Time: {end - start:.6f}s)")
-    
+
     # Tail recursive
     start = time.time()
     result = factorial_tail_recursive(n)
     end = time.time()
     print(f"Tail Recursive: {result} (Time: {end - start:.6f}s)")
-    
+
     # Memoized
     start = time.time()
     result = factorial_memoized(n)
     end = time.time()
     print(f"Memoized:       {result} (Time: {end - start:.6f}s)")
-    
+
     # Iterative
     start = time.time()
     result = factorial_iterative(n)
     end = time.time()
     print(f"Iterative:      {result} (Time: {end - start:.6f}s)")
-    
+
     # Math module
     start = time.time()
     result = factorial_math(n)
@@ -144,6 +143,6 @@ if __name__ == "__main__":
     value = 20
     print(f"Factorial of {value}:")
     print(f"Result: {factorial_iterative(value)}")
-    
+
     # Benchmark
     benchmark_factorial(value)
