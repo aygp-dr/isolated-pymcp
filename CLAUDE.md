@@ -34,3 +34,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test MCP servers**: `make test` - Verifies all MCP servers are working
 - **Analyze algorithm**: `make analyze ALGO=algorithm_name` - Run analysis via MCP
 - **Direct Claude analysis**: `make claude-analyze ALGO=algorithm_name` - Local Claude analysis
+
+## Claude Code Slash Commands
+- **/user:mise-en-place** - Organize workspace and ensure everything is in a clean state
+- **/user:security-review** - Perform a thorough security review of the codebase
+- **/user:lint-code** - Run comprehensive code quality checks
+- **/user:lint-fix** - Fix linting issues automatically
+- **/user:generate-docs** - Create or update project documentation
+- **/user:issue-triage** - Triage and manage GitHub issues
+
+For a complete list of available commands, see `.claude/README.md`.

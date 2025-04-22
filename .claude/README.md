@@ -19,10 +19,15 @@ This script will copy the command files to `~/.claude/commands/`, removing the `
 ## Available Commands
 
 - `/user:security-review` - Perform a thorough security review of the codebase
+- `/user:security-review-full` - Perform an in-depth comprehensive security review
 - `/user:mise-en-place` - Organize workspace and ensure everything is in a clean state
 - `/user:check-filename-consistency` - Verify naming conventions across files
 - `/user:lint-code` - Run comprehensive code quality checks
+- `/user:lint-fix` - Fix linting issues automatically
 - `/user:generate-docs` - Create or update project documentation
+- `/user:doc-align` - Align documentation across files
+- `/user:issue-triage` - Triage and manage GitHub issues
+- `/user:validate-issue-labels` - Validate issue labels against standards
 
 ## Usage
 

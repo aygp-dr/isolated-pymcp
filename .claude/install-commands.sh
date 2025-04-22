@@ -23,6 +23,19 @@ for cmd_file in "$SOURCE_DIR"/user:*.md; do
   fi
 done
 
+# Copy shell scripts if they exist (for supporting scripts)
+for script_file in "$SOURCE_DIR"/*.sh; do
+  if [ -f "$script_file" ]; then
+    # Get the base filename
+    base_name=$(basename "$script_file")
+    
+    # Copy to user's .claude/commands directory
+    echo "Installing script: $base_name"
+    cp "$script_file" "$CLAUDE_COMMANDS_DIR/$base_name"
+    chmod +x "$CLAUDE_COMMANDS_DIR/$base_name"
+  fi
+done
+
 echo "Installed commands:"
 ls -la "$CLAUDE_COMMANDS_DIR"
 echo "Installation complete. You can now use these commands with Claude Code."
