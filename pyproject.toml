@@ -9,13 +9,13 @@ description = "A secure, isolated environment for Python development with MCP an
 authors = [
     {name = "Aidan Pace", email = "apace@defrecord.com"}
 ]
-readme = "README.org"
-requires-python = ">=3.9"
+readme = "README.md"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -26,14 +26,14 @@ classifiers = [
 
 [tool.black]
 line-length = 100
-target-version = ["py39"]
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"
 line_length = 100
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
