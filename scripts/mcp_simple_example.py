@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
 Simple example showing how to use MCP Python runner
+
+This script demonstrates how to set up and use the MCP Python runner client
+to execute Python code with dependencies.
 """
 import asyncio
+from typing import Any, Dict
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -31,7 +36,13 @@ server_params = StdioServerParameters(
     ],
 )
 
-async def main():
+async def main() -> None:
+    """
+    Main function to execute the MCP Python runner example.
+
+    Connects to the MCP server, initializes a session, lists available tools,
+    and runs Python code with the numpy dependency.
+    """
     print("Connecting to MCP python-runner...")
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:

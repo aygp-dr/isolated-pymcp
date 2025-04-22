@@ -3,6 +3,8 @@ Tests for Fibonacci implementations
 """
 
 import pytest
+from typing import Callable
+
 from algorithms.fibonacci import fib_recursive, fib_memoized, fib_iterative, fib_generator
 
 
@@ -26,7 +28,7 @@ FIB_NUMBERS = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
         (10, 55),
     ],
 )
-def test_fib_recursive(n, expected):
+def test_fib_recursive(n: int, expected: int) -> None:
     """Test recursive implementation of Fibonacci."""
     assert fib_recursive(n) == expected
 
@@ -41,7 +43,7 @@ def test_fib_recursive(n, expected):
         (20, 6765),
     ],
 )
-def test_fib_memoized(n, expected):
+def test_fib_memoized(n: int, expected: int) -> None:
     """Test memoized implementation of Fibonacci."""
     assert fib_memoized(n) == expected
 
@@ -56,12 +58,12 @@ def test_fib_memoized(n, expected):
         (20, 6765),
     ],
 )
-def test_fib_iterative(n, expected):
+def test_fib_iterative(n: int, expected: int) -> None:
     """Test iterative implementation of Fibonacci."""
     assert fib_iterative(n) == expected
 
 
-def test_fib_generator():
+def test_fib_generator() -> None:
     """Test generator implementation of Fibonacci."""
     # Test for n=10
     n = 10
@@ -76,7 +78,7 @@ def test_fib_generator():
             assert val == FIB_NUMBERS[i]
 
 
-def test_fib_implementations_consistency():
+def test_fib_implementations_consistency() -> None:
     """Test that all implementations produce the same results."""
     for n in range(10):
         recursive = fib_recursive(n)
@@ -94,7 +96,7 @@ def test_fib_implementations_consistency():
         fib_iterative,
     ],
 )
-def test_fibonacci_large_n(func):
+def test_fibonacci_large_n(func: Callable[[int], int]) -> None:
     """Test Fibonacci implementations with larger inputs."""
     # Skip recursive implementation for large n as it would be too slow
     n = 35

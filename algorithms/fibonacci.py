@@ -5,8 +5,8 @@ Implementations of the Fibonacci sequence
 This module provides various implementations of the Fibonacci sequence
 to demonstrate different approaches and their performance characteristics.
 """
-from functools import lru_cache
 import time
+from functools import lru_cache
 from typing import Generator
 
 
