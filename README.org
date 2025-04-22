@@ -92,7 +92,7 @@ gh auth login
 ./setup_secrets.sh
 
 # Update the GitHub secrets with your actual keys
-gh secret edit GITHUB_TOKEN
+gh secret edit GH_PAT
 gh secret edit ANTHROPIC_API_KEY
 #+END_SRC
 

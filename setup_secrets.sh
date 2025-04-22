@@ -9,7 +9,7 @@ fi
 
 # Define required secrets from .envrc.example
 REQUIRED_SECRETS=(
-  "GITHUB_TOKEN"
+  "GH_PAT"  # GitHub Personal Access Token (renamed from GITHUB_TOKEN)
   "ANTHROPIC_API_KEY"
 )
 
@@ -42,7 +42,7 @@ echo "# Generated .env file with secrets" > .env
 echo "# DO NOT COMMIT THIS FILE" >> .env
 
 # Get secrets from GitHub
-echo "GITHUB_TOKEN=$(gh secret get GITHUB_TOKEN)" >> .env
+echo "GITHUB_TOKEN=$(gh secret get GH_PAT)" >> .env
 echo "ANTHROPIC_API_KEY=$(gh secret get ANTHROPIC_API_KEY)" >> .env
 
 # Add other non-secret environment variables from .envrc.example

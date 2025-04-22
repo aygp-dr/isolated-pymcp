@@ -11,7 +11,7 @@ The project has been updated to use GitHub Secrets for sensitive API keys:
 1. **Setup GitHub Secrets**
    - Run the script: `./setup_secrets.sh`
    - This will create placeholders for required secrets
-   - Update secrets with real values: `gh secret edit SECRET_NAME`
+   - Update secrets with real values: `gh secret edit GH_PAT` and `gh secret edit ANTHROPIC_API_KEY`
 
 2. **Local Development**
    - Run `make check-secrets` before starting containers
