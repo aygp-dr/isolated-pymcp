@@ -120,52 +120,16 @@ detangle: ## Update org files from modified configs
 	@emacs --batch --eval "(require 'org)" --eval '(org-babel-detangle ".vscode/settings.json")'
 	@echo "Detangling complete. Org files updated."
 
-<<<<<<< HEAD
 # Python testing and development targets
 .PHONY: pytest
-pytest:
+pytest: ## Run all tests with pytest
 	@echo "Running pytest..."
 	$(PYTHON) -m pytest tests/ $(PYTEST_ARGS)
 
 .PHONY: pytest-verbose
-pytest-verbose:
+pytest-verbose: ## Run tests with verbose output
 	@echo "Running pytest in verbose mode..."
 	$(PYTHON) -m pytest tests/ -v $(PYTEST_ARGS)
-
-.PHONY: black
-black:
-	@echo "Running black formatter..."
-	$(PYTHON) -m black algorithms/ tests/
-
-.PHONY: mypy
-mypy:
-	@echo "Running mypy type checking..."
-	$(PYTHON) -m mypy algorithms/ tests/
-
-.PHONY: flake8
-flake8:
-	@echo "Running flake8 linting..."
-	$(PYTHON) -m flake8 algorithms/ tests/
-
-.PHONY: isort
-isort:
-	@echo "Running isort to organize imports..."
-	$(PYTHON) -m isort algorithms/ tests/
-
-.PHONY: lint
-lint: isort black mypy flake8
-	@echo "All linting steps completed."
-
-.PHONY: install-dev
-install-dev:
-	@echo "Installing development dependencies with UV..."
-	uv pip install -e ".[dev]"
-
-.PHONY: install-mcp
-install-mcp:
-	@echo "Installing MCP CLI with UV..."
-	uv pip install "mcp[cli]"
-=======
 
 # Ensure venv exists
 .PHONY: ensure-venv
@@ -182,6 +146,16 @@ install-dev-tools: ensure-venv ## Install development tools (flake8, black, mypy
 	@uv pip install flake8 black mypy
 	@echo "Development tools installed."
 
+.PHONY: install-dev
+install-dev: ## Install development dependencies with UV
+	@echo "Installing development dependencies with UV..."
+	uv pip install -e ".[dev]"
+
+.PHONY: install-mcp
+install-mcp: ## Install MCP CLI with UV
+	@echo "Installing MCP CLI with UV..."
+	uv pip install "mcp[cli]"
+
 # Python linting with flake8 via uv
 .PHONY: lint
 lint: install-dev-tools ## Run flake8 linter on Python code
@@ -196,6 +170,12 @@ format: install-dev-tools ## Format Python code with Black
 	@.venv/bin/black algorithms/ tests/
 	@echo "Format complete."
 
+.PHONY: isort
+isort: install-dev-tools ## Sort imports with isort
+	@echo "Running isort to organize imports..."
+	@.venv/bin/isort algorithms/ tests/
+	@echo "Import sorting complete."
+
 # Type check Python code with mypy
 .PHONY: typecheck
 typecheck: install-dev-tools ## Run mypy type checking
@@ -203,11 +183,9 @@ typecheck: install-dev-tools ## Run mypy type checking
 	@.venv/bin/mypy --config-file mypy.ini --namespace-packages --explicit-package-bases algorithms/*.py tests/*.py
 	@echo "Type check complete."
 
-
 .PHONY: check-all
 check-all: lint format typecheck ## Run all checks (lint, format, typecheck)
 	@echo "All checks completed."
-
 
 .PHONY: check-secrets
 check-secrets: ## Check for required secrets and set up .env file
@@ -226,13 +204,10 @@ check-secrets: ## Check for required secrets and set up .env file
 		echo ".env file found, using existing secrets"; \
 	fi
 
-
-
 list-mcp-tools: ## List MCP tools from the Pydantic Python server
 	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
-
 
 mcp-tools: ## List MCP tools with prettier formatting
 	@echo '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}' | \
@@ -240,25 +215,20 @@ mcp-tools: ## List MCP tools with prettier formatting
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | \
 	jq '.result.tools[] | {name, description}'
 
-
 add: ## Simple addition example using MCP run-python
 	@echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "input": {"python_code": "print(40 + 2)"}}, "id": 2}' | \
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq '.result.output.stdout'
-
 
 list-mcp-resources: ## List available MCP resources
 	@echo '{"jsonrpc": "2.0", "method": "resources/list", "id": 1}' | \
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
 
-
 list-mcp-prompts: ## List available MCP prompts
 	@echo '{"jsonrpc": "2.0", "method": "prompts/list", "id": 1}' | \
 	deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
 	--allow-read=$(CURDIR) jsr:@pydantic/mcp-run-python stdio | jq
 
-
 README.md: README.org ## Generate Markdown for PyPi and uv
 	emacs --batch -l org --eval "(progn (find-file \"README.org\") (org-md-export-to-markdown))"
->>>>>>> 508665f (feat: improve Makefile help target with dynamic target listing)
