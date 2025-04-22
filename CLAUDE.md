@@ -12,15 +12,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Create directories**: `make dirs` - Creates required project directories
 
 ### MCP and Analysis
-- **Install MCP servers**: `./scripts/install-mcp-servers.sh` - Installs MCP server components
-- **Check MCP setup**: `./scripts/check-mcp-setup.sh` - Verifies MCP CLI installation
-- **Start MCP servers**: `./scripts/start-mcp-servers.sh` - Starts all MCP servers
 - **Test MCP servers**: `make test` - Verifies all MCP servers are working
 - **Analyze algorithm**: `make analyze ALGO=algorithm_name` - Run analysis via MCP
 - **Direct analysis**: `make claude-analyze ALGO=algorithm_name` - Analyze code locally with Claude
-- **List MCP tools**: `make list-mcp-tools` - Lists available MCP tools
-- **List resources**: `make list-mcp-resources` - Lists available MCP resources
-- **List prompts**: `make list-mcp-prompts` - Lists available MCP prompts
+- **MCP tools**: `make mcp-tools` - Lists available MCP tools
+- **MCP resources**: `make list-mcp-resources` - Lists available MCP resources
+- **MCP prompts**: `make list-mcp-prompts` - Lists available MCP prompts
+- **Test all servers**: `make test-all-mcp-servers` - Tests all MCP servers
 
 ### Python Development
 - **Run all tests**: `make pytest` - Run all Python tests

@@ -1,30 +1,31 @@
 
 # Table of Contents
 
-1.  [Overview](#org71207cd)
-2.  [Architecture](#org328cce5)
-3.  [Security Model](#org0b3cfc3)
-4.  [Core Components](#org93a49ad)
-5.  [Integration Points](#org03d6d84)
-6.  [Getting Started](#org8bed99c)
-7.  [Command Reference](#orgce7ab36)
-    1.  [Scripts](#org58f25b4)
-8.  [Development Workflow](#orga37124b)
-9.  [Project Goals](#org053b0e6)
-10. [References](#org94e6855)
-11. [License](#org1419c4d)
+1.  [Overview](#org8808e9a)
+2.  [Architecture](#org515ec29)
+3.  [Security Model](#orgd8b3d1f)
+4.  [Core Components](#org57aa45e)
+5.  [Integration Points](#orga0ed901)
+6.  [Getting Started](#org30b90fc)
+7.  [Command Reference](#org7be4344)
+    1.  [Using MCP Run Python Directly](#orge31a9c0)
+    2.  [Scripts](#org8a62f82)
+8.  [Development Workflow](#org73b477d)
+9.  [Project Goals](#org8409fe1)
+10. [References](#orge0568ab)
+11. [License](#org1274088)
 
 A secure, isolated environment for exploring Python development with Model Context Protocol (MCP) and Language Server Protocol (LSP).
 
 
-<a id="org71207cd"></a>
+<a id="org8808e9a"></a>
 
 # Overview
 
 This project creates an isolated container environment that combines MCP and LSP capabilities for Python development. By leveraging the complementary strengths of both protocols, we enable LLMs to access powerful code intelligence features while maintaining strict security boundaries.
 
 
-<a id="org328cce5"></a>
+<a id="org515ec29"></a>
 
 # Architecture
 
@@ -56,7 +57,7 @@ This project creates an isolated container environment that combines MCP and LSP
         G --> E
 
 
-<a id="org0b3cfc3"></a>
+<a id="orgd8b3d1f"></a>
 
 # Security Model
 
@@ -73,7 +74,7 @@ The project implements a principle of least access architecture:
 See <./SECURITY.md> for comprehensive security guidelines and best practices.
 
 
-<a id="org93a49ad"></a>
+<a id="org57aa45e"></a>
 
 # Core Components
 
@@ -83,7 +84,7 @@ See <./SECURITY.md> for comprehensive security guidelines and best practices.
 -   **Client Interfaces**: Multiple access methods with the same security model
 
 
-<a id="org03d6d84"></a>
+<a id="orga0ed901"></a>
 
 # Integration Points
 
@@ -132,7 +133,7 @@ See <./SECURITY.md> for comprehensive security guidelines and best practices.
 </table>
 
 
-<a id="org8bed99c"></a>
+<a id="org30b90fc"></a>
 
 # Getting Started
 
@@ -173,7 +174,7 @@ See <./SECURITY.md> for comprehensive security guidelines and best practices.
     make analyze ALGO=fibonacci
 
 
-<a id="orgce7ab36"></a>
+<a id="org7be4344"></a>
 
 # Command Reference
 
@@ -186,42 +187,39 @@ Key commands for getting started:
 -   `make test` - Verify MCP server connectivity
 -   `make analyze ALGO=fibonacci` - Analyze algorithm via MCP
 
+
+<a id="orge31a9c0"></a>
+
 ## Using MCP Run Python Directly
 
 You can interact with the MCP Run Python server directly using Deno. The correct JSON-RPC format for calling Python code is:
 
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "run_python_code",
-    "arguments": {
-      "python_code": "print(\"Hello, MCP!\")"
+    {
+      "jsonrpc": "2.0",
+      "method": "tools/call",
+      "params": {
+        "name": "run_python_code",
+        "arguments": {
+          "python_code": "print(\"Hello, MCP!\")"
+        }
+      },
+      "id": 1
     }
-  },
-  "id": 1
-}
-```
 
 Example usage:
 
-```bash
-echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 40 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
-deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
---allow-read=. jsr:@pydantic/mcp-run-python stdio | jq
-```
+    echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 40 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
+    deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+    --allow-read=. jsr:@pydantic/mcp-run-python stdio | jq
 
 To access the algorithms in this repository, use:
 
-```python
-import sys
-sys.path.append('.')
-from algorithms.factorial import factorial_iterative
-
-result = factorial_iterative(5)
-print(f"Factorial of 5 is {result}")
-```
+    import sys
+    sys.path.append('.')
+    from algorithms.factorial import factorial_iterative
+    
+    result = factorial_iterative(5)
+    print(f"Factorial of 5 is {result}")
 
 Before committing changes, always run:
 
@@ -234,14 +232,14 @@ The project uses literate programming with org-mode. Configuration files are gen
 to propagate changes back to the org source.
 
 
-<a id="org58f25b4"></a>
+<a id="org8a62f82"></a>
 
 ## Scripts
 
 Utility scripts are available in the `scripts/` directory. Scripts include setup tools, MCP management, and analysis utilities. Use \`ls -la scripts/\` to see all available scripts.
 
 
-<a id="orga37124b"></a>
+<a id="org73b477d"></a>
 
 # Development Workflow
 
@@ -258,7 +256,7 @@ When making changes:
 3.  For testing: Add algorithms to `algorithms/` directory and use `make analyze`
 
 
-<a id="org053b0e6"></a>
+<a id="org8409fe1"></a>
 
 # Project Goals
 
@@ -268,7 +266,7 @@ When making changes:
 4.  Support multiple client interfaces while maintaining security
 
 
-<a id="org94e6855"></a>
+<a id="orge0568ab"></a>
 
 # References
 
@@ -293,7 +291,7 @@ When making changes:
 -   [Simon Willison: MCP Run Python](https://simonwillison.net/2025/Apr/18/mcp-run-python/) - Detailed exploration of the MCP run-python implementation and its practical applications.
 
 
-<a id="org1419c4d"></a>
+<a id="org1274088"></a>
 
 # License
 

@@ -126,6 +126,43 @@ Key commands for getting started:
 - ~make test~ - Verify MCP server connectivity
 - ~make analyze ALGO=fibonacci~ - Analyze algorithm via MCP
 
+*** Using MCP Run Python Directly
+
+You can interact with the MCP Run Python server directly using Deno. The correct JSON-RPC format for calling Python code is:
+
+#+BEGIN_SRC json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "run_python_code",
+    "arguments": {
+      "python_code": "print(\"Hello, MCP!\")"
+    }
+  },
+  "id": 1
+}
+#+END_SRC
+
+Example usage:
+
+#+BEGIN_SRC bash
+echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 40 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
+deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+--allow-read=. jsr:@pydantic/mcp-run-python stdio | jq
+#+END_SRC
+
+To access the algorithms in this repository, use:
+
+#+BEGIN_SRC python
+import sys
+sys.path.append('.')
+from algorithms.factorial import factorial_iterative
+
+result = factorial_iterative(5)
+print(f"Factorial of 5 is {result}")
+#+END_SRC
+
 Before committing changes, always run:
 1. ~gmake help~ - Verify all targets are documented
 2. ~gmake lint~ - Ensure code passes style checks
