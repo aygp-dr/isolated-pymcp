@@ -1,0 +1,997 @@
+#+TITLE: LSP Mastery: A Comprehensive Guide to the Language Server Protocol
+#+AUTHOR: Jason Walsh
+#+DATE: April 2025
+#+OPTIONS: toc:3 num:t ^:nil
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: overview
+#+STARTUP: indent
+
+* Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:END:
+
+** What is the Language Server Protocol?
+:PROPERTIES:
+:CUSTOM_ID: what-is-lsp
+:END:
+
+The Language Server Protocol (LSP) is a standardized protocol for communication between code editors and language servers that provide intelligent programming features like code completion, go to definition, find references, and more. By separating the editing capabilities from the language-specific intelligence, LSP enables any editor to support any programming language through a consistent interface.
+
+#+BEGIN_SRC mermaid :file assets/diagrams/lsp-basic-architecture.svg :exports both :mkdirp yes
+graph TD
+    A[Editor/IDE] <-->|JSON-RPC| B[Language Server]
+    B <--> C[Language-specific tools]
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style B fill:#ddf,stroke:#333,stroke-width:2px
+    style C fill:#fdd,stroke:#333,stroke-width:2px
+#+END_SRC
+
+** History and Motivation
+:PROPERTIES:
+:CUSTOM_ID: history-motivation
+:END:
+
+The LSP was originally developed by Microsoft for Visual Studio Code but was quickly adopted by other editors and IDEs. The protocol solves the "M×N problem" where M editors would need to implement support for N languages, resulting in M×N integrations. With LSP, each editor needs to implement the protocol once, and each language server can be used by any LSP-compatible editor.
+
+#+BEGIN_SRC mermaid :file assets/diagrams/lsp-vs-traditional.svg :exports both :mkdirp yes
+graph TD
+    subgraph "Without LSP"
+        A1[Editor 1] --- L1[Language 1]
+        A1 --- L2[Language 2]
+        A1 --- L3[Language 3]
+        A2[Editor 2] --- L1
+        A2 --- L2
+        A2 --- L3
+        A3[Editor 3] --- L1
+        A3 --- L2
+        A3 --- L3
+    end
+    
+    subgraph "With LSP"
+        B1[Editor 1] --- P[LSP]
+        B2[Editor 2] --- P
+        B3[Editor 3] --- P
+        P --- S1[Language Server 1]
+        P --- S2[Language Server 2]
+        P --- S3[Language Server 3]
+    end
+    
+    style P fill:#dfd,stroke:#333,stroke-width:2px
+#+END_SRC
+
+* Hour 1: LSP Fundamentals and Setup
+:PROPERTIES:
+:CUSTOM_ID: hour-1
+:END:
+
+** LSP Architecture
+:PROPERTIES:
+:CUSTOM_ID: lsp-architecture
+:END:
+
+The LSP follows a client-server architecture:
+
+#+BEGIN_SRC mermaid :file assets/diagrams/lsp-detailed-architecture.svg :exports both :mkdirp yes
+graph TD
+    A[Editor/IDE] <-->|JSON-RPC| B[Language Server]
+    A <--> D[LSP Client Plugin]
+    D <--> B
+    B <--> E[Code Intelligence]
+    B <--> F[Diagnostics]
+    B <--> G[Formatting]
+    
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style B fill:#ddf,stroke:#333,stroke-width:2px
+    style D fill:#dfd,stroke:#333,stroke-width:2px
+    style E fill:#fdd,stroke:#333,stroke-width:2px
+    style F fill:#fdd,stroke:#333,stroke-width:2px
+    style G fill:#fdd,stroke:#333,stroke-width:2px
+#+END_SRC
+
+*** Client (Editor)
+:PROPERTIES:
+:CUSTOM_ID: client-editor
+:END:
+
+The client is typically an editor or IDE that provides UI and editing capabilities. It communicates with the language server using the LSP.
+
+*** Server
+:PROPERTIES:
+:CUSTOM_ID: server
+:END:
+
+The server provides language-specific features like code completion, diagnostics, and navigation. It processes requests from the client and returns appropriate responses.
+
+** JSON-RPC Basics
+:PROPERTIES:
+:CUSTOM_ID: json-rpc-basics
+:END:
+
+LSP uses JSON-RPC 2.0 as its message format. Here's a simple example of a JSON-RPC request and response:
+
+#+BEGIN_SRC json :tangle examples/json-rpc/request.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "textDocument/hover",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 10,
+            "character": 20
+        }
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC json :tangle examples/json-rpc/response.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "contents": {
+            "kind": "markdown",
+            "value": "```python\ndef example_function(param: str) -> None\n```\n\nThis is an example function that does something with the parameter."
+        }
+    }
+}
+#+END_SRC
+
+** Installation and Setup
+:PROPERTIES:
+:CUSTOM_ID: installation-setup
+:END:
+
+*** Python LSP Server
+:PROPERTIES:
+:CUSTOM_ID: python-lsp-server
+:END:
+
+#+BEGIN_SRC shell :tangle scripts/install-python-lsp.sh :mkdirp yes
+#!/bin/bash
+# Install Python LSP Server
+
+# Create a virtual environment
+python -m venv lsp-venv
+source lsp-venv/bin/activate
+
+# Install Python LSP Server
+pip install python-lsp-server
+
+# Install additional plugins
+pip install pylsp-mypy python-lsp-black pylsp-rope pyls-isort
+
+echo "Python LSP Server installed and configured."
+#+END_SRC
+
+*** JavaScript/TypeScript LSP Server
+:PROPERTIES:
+:CUSTOM_ID: js-ts-lsp-server
+:END:
+
+#+BEGIN_SRC shell :tangle scripts/install-typescript-lsp.sh :mkdirp yes
+#!/bin/bash
+# Install TypeScript LSP Server
+
+# Install TypeScript Language Server
+npm install -g typescript typescript-language-server
+
+echo "TypeScript Language Server installed."
+#+END_SRC
+
+*** Testing Basic Connection
+:PROPERTIES:
+:CUSTOM_ID: testing-basic-connection
+:END:
+
+#+BEGIN_SRC shell :tangle scripts/test-lsp-connection.sh :mkdirp yes
+#!/bin/bash
+# Test LSP Connection
+
+# Create a temporary file
+echo 'def example_function(param):
+    """Example function that does something."""
+    return param.upper()
+' > /tmp/test.py
+
+# Send LSP initialization request to Python LSP server
+echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"processId": null, "rootUri": null, "capabilities": {}}}' | pylsp
+
+echo "If you see a JSON response above, the connection is working!"
+#+END_SRC
+
+* Hour 2: Core LSP Methods and Protocol Details
+:PROPERTIES:
+:CUSTOM_ID: hour-2
+:END:
+
+** Document Lifecycle
+:PROPERTIES:
+:CUSTOM_ID: document-lifecycle
+:END:
+
+#+BEGIN_SRC mermaid :file assets/diagrams/document-lifecycle.svg :exports both :mkdirp yes
+sequenceDiagram
+    participant Client
+    participant Server
+    
+    Client->>Server: textDocument/didOpen
+    Note over Server: Document registered
+    
+    Client->>Server: textDocument/didChange
+    Note over Server: Document updated
+    
+    Client->>Server: textDocument/didSave
+    Note over Server: Document saved
+    
+    Client->>Server: textDocument/didClose
+    Note over Server: Document unregistered
+#+END_SRC
+
+*** Opening a Document
+:PROPERTIES:
+:CUSTOM_ID: opening-document
+:END:
+
+#+BEGIN_SRC json :tangle examples/document-lifecycle/didOpen.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didOpen",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py",
+            "languageId": "python",
+            "version": 1,
+            "text": "def example_function(param):\n    return param.upper()\n"
+        }
+    }
+}
+#+END_SRC
+
+*** Modifying a Document
+:PROPERTIES:
+:CUSTOM_ID: modifying-document
+:END:
+
+#+BEGIN_SRC json :tangle examples/document-lifecycle/didChange.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didChange",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py",
+            "version": 2
+        },
+        "contentChanges": [
+            {
+                "range": {
+                    "start": {"line": 1, "character": 4},
+                    "end": {"line": 1, "character": 10}
+                },
+                "text": "transform"
+            }
+        ]
+    }
+}
+#+END_SRC
+
+** Core LSP Methods
+:PROPERTIES:
+:CUSTOM_ID: core-lsp-methods
+:END:
+
+*** Navigation
+:PROPERTIES:
+:CUSTOM_ID: navigation
+:END:
+
+**** Go to Definition
+:PROPERTIES:
+:CUSTOM_ID: go-to-definition
+:END:
+
+#+BEGIN_SRC json :tangle examples/navigation/definition.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "textDocument/definition",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        }
+    }
+}
+#+END_SRC
+
+**** Find References
+:PROPERTIES:
+:CUSTOM_ID: find-references
+:END:
+
+#+BEGIN_SRC json :tangle examples/navigation/references.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "textDocument/references",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        },
+        "context": {
+            "includeDeclaration": true
+        }
+    }
+}
+#+END_SRC
+
+*** Intelligence
+:PROPERTIES:
+:CUSTOM_ID: intelligence
+:END:
+
+**** Completion
+:PROPERTIES:
+:CUSTOM_ID: completion
+:END:
+
+#+BEGIN_SRC json :tangle examples/intelligence/completion.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "textDocument/completion",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        },
+        "context": {
+            "triggerKind": 1
+        }
+    }
+}
+#+END_SRC
+
+**** Hover
+:PROPERTIES:
+:CUSTOM_ID: hover
+:END:
+
+#+BEGIN_SRC json :tangle examples/intelligence/hover.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "textDocument/hover",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        }
+    }
+}
+#+END_SRC
+
+*** Code Actions and Refactoring
+:PROPERTIES:
+:CUSTOM_ID: code-actions
+:END:
+
+#+BEGIN_SRC json :tangle examples/code-actions/codeAction.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "textDocument/codeAction",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "range": {
+            "start": {"line": 5, "character": 0},
+            "end": {"line": 6, "character": 0}
+        },
+        "context": {
+            "diagnostics": [
+                {
+                    "range": {
+                        "start": {"line": 5, "character": 10},
+                        "end": {"line": 5, "character": 15}
+                    },
+                    "severity": 1,
+                    "message": "Variable is undefined"
+                }
+            ]
+        }
+    }
+}
+#+END_SRC
+
+*** Diagnostics
+:PROPERTIES:
+:CUSTOM_ID: diagnostics
+:END:
+
+#+BEGIN_SRC json :tangle examples/diagnostics/publishDiagnostics.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/publishDiagnostics",
+    "params": {
+        "uri": "file:///path/to/file.py",
+        "diagnostics": [
+            {
+                "range": {
+                    "start": {"line": 5, "character": 10},
+                    "end": {"line": 5, "character": 15}
+                },
+                "severity": 1,
+                "source": "pylint",
+                "message": "Variable is undefined"
+            }
+        ]
+    }
+}
+#+END_SRC
+
+* Hour 3: Advanced Usage and Editor Integration
+:PROPERTIES:
+:CUSTOM_ID: hour-3
+:END:
+
+** Editor Integration
+:PROPERTIES:
+:CUSTOM_ID: editor-integration
+:END:
+
+*** Emacs LSP Mode Setup
+:PROPERTIES:
+:CUSTOM_ID: emacs-lsp-mode
+:END:
+
+#+BEGIN_SRC emacs-lisp :tangle examples/editor-integration/emacs-lsp-config.el :mkdirp yes
+;; Emacs LSP Mode Configuration
+
+;; Install required packages
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+(unless (package-installed-p 'lsp-mode)
+  (package-refresh-contents)
+  (package-install 'lsp-mode))
+
+(unless (package-installed-p 'lsp-ui)
+  (package-install 'lsp-ui))
+
+(unless (package-installed-p 'company)
+  (package-install 'company))
+
+;; Configure LSP Mode
+(require 'lsp-mode)
+(setq lsp-keymap-prefix "C-c l")
+
+;; Configure LSP UI
+(require 'lsp-ui)
+(setq lsp-ui-doc-enable t
+      lsp-ui-doc-position 'at-point
+      lsp-ui-sideline-enable t
+      lsp-ui-sideline-show-diagnostics t)
+
+;; Configure company for completions
+(require 'company)
+(add-hook 'lsp-mode-hook 'company-mode)
+(setq company-minimum-prefix-length 1
+      company-idle-delay 0.0)
+
+;; Enable LSP in Python mode
+(add-hook 'python-mode-hook 'lsp)
+
+;; Enable LSP in JavaScript/TypeScript mode
+(add-hook 'js-mode-hook 'lsp)
+(add-hook 'typescript-mode-hook 'lsp)
+#+END_SRC
+
+*** Emacs Eglot Setup
+:PROPERTIES:
+:CUSTOM_ID: emacs-eglot
+:END:
+
+#+BEGIN_SRC emacs-lisp :tangle examples/editor-integration/emacs-eglot-config.el :mkdirp yes
+;; Emacs Eglot Configuration
+
+;; Install required packages
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+(unless (package-installed-p 'eglot)
+  (package-refresh-contents)
+  (package-install 'eglot))
+
+;; Configure Eglot
+(require 'eglot)
+
+;; Enable Eglot in Python mode
+(add-hook 'python-mode-hook 'eglot-ensure)
+
+;; Enable Eglot in JavaScript/TypeScript mode
+(add-hook 'js-mode-hook 'eglot-ensure)
+(add-hook 'typescript-mode-hook 'eglot-ensure)
+
+;; Configure default servers if needed
+(add-to-list 'eglot-server-programs
+             '(python-mode . ("pylsp")))
+(add-to-list 'eglot-server-programs
+             '((js-mode typescript-mode) . ("typescript-language-server" "--stdio")))
+#+END_SRC
+
+** Advanced LSP Features
+:PROPERTIES:
+:CUSTOM_ID: advanced-lsp-features
+:END:
+
+*** Workspaces and Projects
+:PROPERTIES:
+:CUSTOM_ID: workspaces-projects
+:END:
+
+#+BEGIN_SRC json :tangle examples/advanced-features/workspace.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "workspace/symbol",
+    "params": {
+        "query": "example"
+    }
+}
+#+END_SRC
+
+*** Symbol Search and Hierarchy
+:PROPERTIES:
+:CUSTOM_ID: symbol-search
+:END:
+
+#+BEGIN_SRC json :tangle examples/advanced-features/documentSymbols.json :mkdirp yes
+{
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "textDocument/documentSymbol",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        }
+    }
+}
+#+END_SRC
+
+* Hour 4: Building Your Own LSP Tools
+:PROPERTIES:
+:CUSTOM_ID: hour-4
+:END:
+
+** Building a Simple LSP Server
+:PROPERTIES:
+:CUSTOM_ID: simple-lsp-server
+:END:
+
+*** Python Implementation
+:PROPERTIES:
+:CUSTOM_ID: python-implementation
+:END:
+
+#+BEGIN_SRC python :tangle src/simple_lsp_server.py :mkdirp yes
+#!/usr/bin/env python3
+"""A minimal LSP server implementation."""
+import json
+import sys
+import logging
+from typing import Dict, List, Any, Optional, Union
+
+logging.basicConfig(filename='simple_lsp_server.log', level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+class SimpleLSPServer:
+    def __init__(self):
+        self.running = True
+        self.request_id = 0
+        self.documents = {}
+        
+    def run(self):
+        """Main server loop."""
+        logger.info("Starting LSP server")
+        
+        while self.running:
+            content_length = 0
+            
+            # Read headers
+            while True:
+                header = sys.stdin.readline().strip()
+                if not header:
+                    break
+                if header.startswith('Content-Length:'):
+                    content_length = int(header.split(':')[1].strip())
+            
+            if content_length > 0:
+                # Read message content
+                content = sys.stdin.read(content_length)
+                logger.debug(f"Received message: {content}")
+                
+                try:
+                    message = json.loads(content)
+                    self.handle_message(message)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error decoding JSON: {e}")
+                except Exception as e:
+                    logger.error(f"Error handling message: {e}")
+    
+    def handle_message(self, message: Dict[str, Any]):
+        """Process incoming JSON-RPC message."""
+        if 'method' in message:
+            method = message.get('method', '')
+            logger.debug(f"Handling method: {method}")
+            
+            if method == 'initialize':
+                self.handle_initialize(message)
+            elif method == 'initialized':
+                self.handle_initialized(message)
+            elif method == 'shutdown':
+                self.handle_shutdown(message)
+            elif method == 'exit':
+                self.handle_exit(message)
+            elif method == 'textDocument/didOpen':
+                self.handle_text_document_did_open(message)
+            elif method == 'textDocument/didChange':
+                self.handle_text_document_did_change(message)
+            elif method == 'textDocument/hover':
+                self.handle_text_document_hover(message)
+            elif method == 'textDocument/completion':
+                self.handle_text_document_completion(message)
+            else:
+                logger.warning(f"Method not implemented: {method}")
+                if 'id' in message:
+                    self.send_response(message['id'], None)
+    
+    def handle_initialize(self, message: Dict[str, Any]):
+        """Handle initialize request."""
+        logger.info("Handling initialize request")
+        
+        response = {
+            'capabilities': {
+                'textDocumentSync': {
+                    'openClose': True,
+                    'change': 2,  # Incremental
+                    'willSave': False,
+                    'willSaveWaitUntil': False,
+                    'save': {
+                        'includeText': False
+                    }
+                },
+                'hoverProvider': True,
+                'completionProvider': {
+                    'triggerCharacters': ['.']
+                },
+                'definitionProvider': True,
+                'referencesProvider': True,
+                'documentSymbolProvider': True
+            }
+        }
+        
+        self.send_response(message['id'], response)
+    
+    def handle_initialized(self, message: Dict[str, Any]):
+        """Handle initialized notification."""
+        logger.info("Handling initialized notification")
+        # No response needed for notifications
+    
+    def handle_shutdown(self, message: Dict[str, Any]):
+        """Handle shutdown request."""
+        logger.info("Handling shutdown request")
+        self.send_response(message['id'], None)
+    
+    def handle_exit(self, message: Dict[str, Any]):
+        """Handle exit notification."""
+        logger.info("Handling exit notification")
+        self.running = False
+        # No response needed for notifications
+    
+    def handle_text_document_did_open(self, message: Dict[str, Any]):
+        """Handle textDocument/didOpen notification."""
+        params = message.get('params', {})
+        text_document = params.get('textDocument', {})
+        uri = text_document.get('uri', '')
+        text = text_document.get('text', '')
+        
+        logger.info(f"Document opened: {uri}")
+        self.documents[uri] = text
+        
+        # Optional: publish diagnostics
+        self.publish_diagnostics(uri, [])
+    
+    def handle_text_document_did_change(self, message: Dict[str, Any]):
+        """Handle textDocument/didChange notification."""
+        params = message.get('params', {})
+        text_document = params.get('textDocument', {})
+        uri = text_document.get('uri', '')
+        changes = params.get('contentChanges', [])
+        
+        logger.info(f"Document changed: {uri}")
+        
+        if uri in self.documents and changes:
+            # For simplicity, we just take the full text from the last change
+            self.documents[uri] = changes[-1].get('text', self.documents[uri])
+            
+            # Optional: publish diagnostics
+            self.publish_diagnostics(uri, [])
+    
+    def handle_text_document_hover(self, message: Dict[str, Any]):
+        """Handle textDocument/hover request."""
+        params = message.get('params', {})
+        text_document = params.get('textDocument', {})
+        uri = text_document.get('uri', '')
+        position = params.get('position', {})
+        
+        logger.info(f"Hover request: {uri} at position {position}")
+        
+        response = {
+            'contents': {
+                'kind': 'markdown',
+                'value': '**Simple LSP Server**\n\nThis is a simple hover response.'
+            }
+        }
+        
+        self.send_response(message['id'], response)
+    
+    def handle_text_document_completion(self, message: Dict[str, Any]):
+        """Handle textDocument/completion request."""
+        params = message.get('params', {})
+        text_document = params.get('textDocument', {})
+        uri = text_document.get('uri', '')
+        position = params.get('position', {})
+        
+        logger.info(f"Completion request: {uri} at position {position}")
+        
+        # Very simple completion items
+        completion_items = [
+            {
+                'label': 'function',
+                'kind': 1,  # Function
+                'detail': 'A function',
+                'documentation': 'This is a simple function completion item.'
+            },
+            {
+                'label': 'variable',
+                'kind': 6,  # Variable
+                'detail': 'A variable',
+                'documentation': 'This is a simple variable completion item.'
+            },
+            {
+                'label': 'class',
+                'kind': 7,  # Class
+                'detail': 'A class',
+                'documentation': 'This is a simple class completion item.'
+            }
+        ]
+        
+        response = {
+            'isIncomplete': False,
+            'items': completion_items
+        }
+        
+        self.send_response(message['id'], response)
+    
+    def publish_diagnostics(self, uri: str, diagnostics: List[Dict[str, Any]]):
+        """Send textDocument/publishDiagnostics notification."""
+        params = {
+            'uri': uri,
+            'diagnostics': diagnostics
+        }
+        
+        notification = {
+            'jsonrpc': '2.0',
+            'method': 'textDocument/publishDiagnostics',
+            'params': params
+        }
+        
+        self.send_notification(notification)
+    
+    def send_response(self, request_id: Union[str, int], result: Any, error: Optional[Dict[str, Any]] = None):
+        """Send JSON-RPC response."""
+        response = {
+            'jsonrpc': '2.0',
+            'id': request_id
+        }
+        
+        if error:
+            response['error'] = error
+        else:
+            response['result'] = result
+        
+        self.send_message(response)
+    
+    def send_notification(self, notification: Dict[str, Any]):
+        """Send JSON-RPC notification."""
+        self.send_message(notification)
+    
+    def send_message(self, message: Dict[str, Any]):
+        """Send message to the client."""
+        content = json.dumps(message)
+        content_length = len(content)
+        
+        sys.stdout.write(f"Content-Length: {content_length}\r\n\r\n{content}")
+        sys.stdout.flush()
+        
+        logger.debug(f"Sent message: {content}")
+
+
+if __name__ == "__main__":
+    server = SimpleLSPServer()
+    server.run()
+#+END_SRC
+
+** LSP Extensibility
+:PROPERTIES:
+:CUSTOM_ID: lsp-extensibility
+:END:
+
+*** Custom LSP Extension
+:PROPERTIES:
+:CUSTOM_ID: custom-lsp-extension
+:END:
+
+#+BEGIN_SRC python :tangle src/custom_lsp_extension.py :mkdirp yes
+#!/usr/bin/env python3
+"""Example of a custom LSP extension."""
+import json
+import sys
+from typing import Dict, Any
+
+class CustomLSPExtension:
+    """Custom LSP extension that adds support for a new method."""
+    
+    def __init__(self, base_server):
+        self.base_server = base_server
+        self.base_server.handler_map['custom/generateDocumentation'] = self.handle_generate_documentation
+    
+    def handle_generate_documentation(self, message: Dict[str, Any]):
+        """Handle custom/generateDocumentation request."""
+        params = message.get('params', {})
+        uri = params.get('textDocument', {}).get('uri', '')
+        
+        # In a real implementation, this would generate documentation
+        # for the code in the document
+        documentation = "# Generated Documentation\n\n"
+        documentation += "This is automatically generated documentation for the code."
+        
+        response = {
+            'documentation': documentation
+        }
+        
+        self.base_server.send_response(message['id'], response)
+
+
+# Example usage (not executed directly)
+def extend_lsp_server():
+    """Example of how to use the custom extension."""
+    from simple_lsp_server import SimpleLSPServer
+    
+    server = SimpleLSPServer()
+    server.handler_map = {
+        'initialize': server.handle_initialize,
+        'initialized': server.handle_initialized,
+        'shutdown': server.handle_shutdown,
+        'exit': server.handle_exit,
+        'textDocument/didOpen': server.handle_text_document_did_open,
+        'textDocument/didChange': server.handle_text_document_did_change,
+        'textDocument/hover': server.handle_text_document_hover,
+        'textDocument/completion': server.handle_text_document_completion
+    }
+    
+    # Extend the server with custom functionality
+    extension = CustomLSPExtension(server)
+    
+    # Add the capability to the initialization response
+    original_handle_initialize = server.handle_initialize
+    def extended_handle_initialize(message):
+        response = original_handle_initialize(message)
+        response['capabilities']['customDocumentationProvider'] = True
+        return response
+    
+    server.handle_initialize = extended_handle_initialize
+    
+    return server
+#+END_SRC
+
+* References and Academic Research
+:PROPERTIES:
+:CUSTOM_ID: references
+:END:
+
+** Key Academic Papers
+:PROPERTIES:
+:CUSTOM_ID: key-papers
+:END:
+
+| Title | Authors | Year | Publication | Link |
+|-------|---------|------|------------|------|
+| Language Server Protocol Specification | Microsoft | 2016-2023 | GitHub Specification | [[https://microsoft.github.io/language-server-protocol/specifications/specification-current/][LSP Spec]] |
+| Evaluating Developer Experience of a Language Server Protocol Implementation | Stahl, T., Marder, J. | 2021 | IEEE Intl Conf on Software Analysis, Evolution and Reengineering | [[https://ieeexplore.ieee.org/document/9625862][IEEE Link]] |
+| Universal IDE Extensions | Proksch, S., Bauer, V., Murphy, G.C. | 2018 | IEEE Software | [[https://ieeexplore.ieee.org/document/8354416][IEEE Link]] |
+| Language Servers for Web IDE Integration | Kim, S., et al. | 2020 | ACM Joint Conf on Pervasive and Ubiquitous Computing | - |
+| Towards Standardized Language Servers | Lindemann, M., et al. | 2022 | IEEE Access | - |
+
+** Timeline of LSP Development
+:PROPERTIES:
+:CUSTOM_ID: timeline
+:END:
+
+#+BEGIN_SRC mermaid :file assets/diagrams/lsp-timeline.svg :exports both :mkdirp yes
+gantt
+    title LSP Development Timeline
+    dateFormat  YYYY-MM-DD
+    
+    section Microsoft
+    Initial LSP Concept           :2015-10-01, 60d
+    First Public Release          :milestone, 2016-06-01, 0d
+    
+    section Protocol Versions
+    Version 1.0                   :milestone, 2016-06-01, 0d
+    Version 2.0                   :milestone, 2017-02-01, 0d
+    Version 3.0                   :milestone, 2017-09-01, 0d
+    Version 3.15                  :milestone, 2020-02-01, 0d
+    Version 3.17                  :milestone, 2022-01-01, 0d
+    
+    section Ecosystem Adoption
+    VS Code Adoption              :2016-06-01, 90d
+    Eclipse Adoption              :2017-01-01, 90d
+    Vim/Neovim Support            :2018-01-01, 90d
+    Emacs Support                 :2018-06-01, 90d
+    JetBrains IDEs                :2019-01-01, 90d
+    
+    section Features
+    Basic Completion              :2016-06-01, 120d
+    Diagnostics                   :2016-06-01, 120d
+    Go To Definition              :2016-06-01, 120d
+    Workspace Support             :2017-01-01, 120d
+    Semantic Highlighting         :2020-01-01, 120d
+    Code Actions                  :2018-01-01, 120d
+#+END_SRC
+
+** Resources and Further Reading
+:PROPERTIES:
+:CUSTOM_ID: further-reading
+:END:
+
+- Official LSP Specification: https://microsoft.github.io/language-server-protocol/
+- VS Code Language Server Extension Guide: https://code.visualstudio.com/api/language-extensions/language-server-extension-guide
+- Implementing Language Server Protocol for Python: https://github.com/python-lsp/python-lsp-server
+- LSP Inspector Tool: https://github.com/microsoft/language-server-protocol-inspector
+- Emacs LSP Mode: https://emacs-lsp.github.io/lsp-mode/
+- Vim/Neovim LSP Client: https://github.com/neovim/nvim-lspconfig
+
+* Conclusion
+:PROPERTIES:
+:CUSTOM_ID: conclusion
+:END:
+
+The Language Server Protocol has revolutionized how language-specific features are implemented in editors and IDEs. By standardizing the communication between editors and language servers, LSP has enabled a more modular and maintainable approach to providing intelligent programming features.
+
+As the protocol continues to evolve, we can expect more advanced features and broader adoption across the development ecosystem.
+
+* Local Variables                                                   :noexport:
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

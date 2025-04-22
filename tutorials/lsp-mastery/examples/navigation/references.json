@@ -1,0 +1,17 @@
+{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "textDocument/references",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        },
+        "context": {
+            "includeDeclaration": true
+        }
+    }
+}
