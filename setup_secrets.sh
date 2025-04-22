@@ -55,7 +55,8 @@ chmod +x get_secrets.sh
 echo "Created get_secrets.sh script to retrieve secrets"
 
 # Update docker-compose.yml to use .env file
-echo "Modifying docker-compose.yml to use .env file instead of direct environment variables..."
-sed -i 's/environment:/env_file: .env\n    environment:/g' docker-compose.yml
+echo "Note: docker-compose.yml has already been updated to use .env file"
+# No longer need this as we manually edited the file:
+# sed -i 's/environment:/env_file: .env\n    environment:/g' docker-compose.yml
 
 echo "Setup complete. Please ensure your secrets are properly set with actual values."
