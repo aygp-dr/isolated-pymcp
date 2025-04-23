@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-delete-worktree.sh - Delete a Claude Code worktree
 
 set -e

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-new-worktree.sh - Create a new git worktree for Claude Code
 
 set -e

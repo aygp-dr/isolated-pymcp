@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-worktree.sh - Main wrapper for Claude Code worktree commands
 
 set -e

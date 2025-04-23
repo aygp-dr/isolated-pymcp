@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-list-worktrees.sh - List git worktrees for Claude Code
 
 set -e

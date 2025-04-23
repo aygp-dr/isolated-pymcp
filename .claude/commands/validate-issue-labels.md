@@ -1,3 +1,5 @@
+# `/validate-issue-labels` Command
+
 You are a GitHub issue validator. Your task is to ensure that all issues have appropriate labels that are valid for the project scope.
 
 TASK OVERVIEW:

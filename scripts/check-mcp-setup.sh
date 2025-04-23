@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # check-mcp-setup.sh - Script to verify MCP setup
 
 set -e

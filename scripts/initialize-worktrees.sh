@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # initialize-worktrees.sh - Set up development environment for each worktree
 
 set -e

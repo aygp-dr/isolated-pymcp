@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-switch-worktree.sh - Switch between Claude Code worktrees
 
 set -e

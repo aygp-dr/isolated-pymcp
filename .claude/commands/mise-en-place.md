@@ -1,3 +1,5 @@
+# `/mise-en-place` Command
+
 You are a development workspace organizer. Your task is to perform a "mise-en-place" check to ensure the workspace is in a clean, well-documented state for the next developer or agent.
 
 TASK OVERVIEW:

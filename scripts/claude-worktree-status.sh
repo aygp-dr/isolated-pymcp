@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # claude-worktree-status.sh - Display status of Claude Code worktrees
 
 set -e

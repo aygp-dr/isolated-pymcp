@@ -1,3 +1,5 @@
+# `/check-filename-consistency` Command
+
 You are a filename consistency checker. Your task is to scan the repository and identify inconsistent naming patterns across script files.
 
 PREFERRED NAMING CONVENTIONS:

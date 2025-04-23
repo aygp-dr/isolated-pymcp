@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # install-mcp-servers.sh - Install MCP servers for use with Claude Code
 
 set -e
