@@ -350,3 +350,54 @@ mcp-add: ## Run Python code via MCP
 		--allow-read=. \
 		jsr:@pydantic/mcp-run-python stdio | jq
 
+# Git worktree management targets
+.PHONY: worktree-new worktree-list worktree-status worktree-delete worktree-switch worktree-init
+
+worktree-new: ## Create a new git worktree (usage: make worktree-new NAME=feature-name [ISSUE=42] [INIT=1])
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME not specified"; \
+		echo "Usage: make worktree-new NAME=feature-name [ISSUE=42] [INIT=1]"; \
+		exit 1; \
+	fi; \
+	CMD="./scripts/claude-new-worktree.sh $(NAME)"; \
+	if [ -n "$(ISSUE)" ]; then \
+		CMD="$$CMD --issue $(ISSUE)"; \
+	fi; \
+	if [ -n "$(INIT)" ] && [ "$(INIT)" = "1" ]; then \
+		CMD="$$CMD --init"; \
+	fi; \
+	$$CMD
+
+worktree-list: ## List all git worktrees
+	@./scripts/claude-list-worktrees.sh $(FORMAT)
+
+worktree-status: ## Show status of all git worktrees
+	@./scripts/claude-worktree-status.sh $(CHANGES:1=--changes)
+
+worktree-delete: ## Delete a git worktree (usage: make worktree-delete NAME=feature-name [BRANCH=1])
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME not specified"; \
+		echo "Usage: make worktree-delete NAME=feature-name [BRANCH=1]"; \
+		exit 1; \
+	fi; \
+	CMD="./scripts/claude-delete-worktree.sh $(NAME)"; \
+	if [ -n "$(BRANCH)" ] && [ "$(BRANCH)" = "1" ]; then \
+		CMD="$$CMD --delete-branch"; \
+	fi; \
+	$$CMD
+
+worktree-switch: ## Show how to switch to a worktree (usage: make worktree-switch NAME=feature-name)
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME not specified"; \
+		echo "Usage: make worktree-switch NAME=feature-name"; \
+		exit 1; \
+	fi; \
+	./scripts/claude-switch-worktree.sh $(NAME)
+
+worktree-init: ## Initialize worktree environment(s) (usage: make worktree-init [NAME=feature-name])
+	@if [ -n "$(NAME)" ]; then \
+		WORKTREE="isolated-pymcp-$(NAME)" ./scripts/initialize-worktrees.sh; \
+	else \
+		./scripts/initialize-worktrees.sh; \
+	fi
+
