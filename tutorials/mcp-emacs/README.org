@@ -1,0 +1,551 @@
+#+TITLE: MCP Emacs Integration
+#+AUTHOR: Jason Walsh
+#+EMAIL: jwalsh@defrecord.com
+#+OPTIONS: toc:3 num:3 ^:nil
+#+PROPERTY: header-args:emacs-lisp :results silent
+#+PROPERTY: header-args:shell :results output
+
+* Introduction
+
+This tutorial provides a comprehensive guide to using the Model Context Protocol (MCP) with Emacs. MCP enables isolated code execution and communication with various services through standardized JSON-RPC interfaces.
+
+** What is MCP?
+
+Model Context Protocol (MCP) is a specification for interaction between language models and external tools. It provides:
+
+- Isolated code execution environments
+- Memory persistence between calls
+- Sandboxed filesystem operations
+- Standard interfaces for tool integration
+
+** Benefits of MCP with Emacs
+
+- *Security*: Run untrusted code in isolated environments
+- *Reproducibility*: Create reproducible analysis workflows
+- *Integration*: Combine multiple tools through a consistent interface
+- *Org-mode integration*: Use MCP with org-babel for literate programming
+
+* Quick Start
+
+** Installation
+
+1. Tangle the configuration files from =integrations.org=:
+   
+   #+begin_src shell :tangle setup-mcp.sh :mkdirp yes
+   #!/bin/bash
+   # Tangle the integrations.org file
+   emacs --batch -l org --eval "(progn (find-file \"integrations.org\") (org-babel-tangle))"
+   #+end_src
+
+2. Add MCP Emacs package to your configuration:
+   
+   #+begin_src emacs-lisp :tangle init-mcp.el :mkdirp yes
+   ;; Add the directory to your load path
+   (add-to-list 'load-path "~/.emacs.d/lisp/")
+   
+   ;; Load MCP package
+   (require 'mcp)
+   #+end_src
+
+** Basic Usage
+
+Start the Python MCP server:
+
+#+begin_src emacs-lisp :tangle examples/basic-usage.el :mkdirp yes
+;; Start the Python MCP server
+(mcp-start-server 'run-python)
+
+;; Run simple Python code
+(mcp-run-python-code "
+import numpy as np
+result = np.array([1, 2, 3]) ** 2
+print(f'Result: {result}')
+result.sum()
+")
+#+end_src
+
+** Org-Babel Example
+
+#+begin_src org :tangle examples/babel-example.org :mkdirp yes
+,#+TITLE: MCP Org-Babel Example
+,#+AUTHOR: Jason Walsh
+
+,* Example of MCP Python in Org-Babel
+
+This is an example of using MCP Python in Org-Babel:
+
+,#+BEGIN_SRC mcp-python
+import numpy as np
+x = np.array([1, 2, 3])
+x ** 2
+,#+END_SRC
+
+,* Another Example with Visualization
+
+,#+BEGIN_SRC mcp-python
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# Generate data
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create plot
+plt.figure(figsize=(8, 4))
+plt.plot(x, y)
+plt.title('Sine Wave')
+
+# Return as data URL
+buf = io.BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+img_str = base64.b64encode(buf.read()).decode('utf-8')
+f"data:image/png;base64,{img_str}"
+,#+END_SRC
+#+end_src
+
+* Directory Structure
+
+This directory contains:
+
+- *README.org* - This file
+- *integrations.org* - Source for MCP configuration files (tangle this)
+- *examples/* - Example use cases
+
+* MCP Servers
+
+The following MCP servers are configured:
+
+| Server     | Port | Description                              |
+|------------+------+------------------------------------------|
+| Run Python | 3001 | Python execution in isolated environment |
+| Memory     | 3002 | Key-value store for session persistence  |
+| Filesystem | 3003 | Sandboxed filesystem operations          |
+| GitHub     | 3004 | GitHub operations (read-only without token) |
+
+* System Architecture
+
+#+begin_src mermaid :file mcp-architecture.png :mkdirp yes
+graph TB
+    Emacs[Emacs] --> |"mcp.el"| MCPInterface[MCP Interface]
+    
+    subgraph "MCP Servers"
+        RunPython[Run Python Server<br>:3001]
+        Memory[Memory Server<br>:3002]
+        Filesystem[Filesystem Server<br>:3003]
+        GitHub[GitHub Server<br>:3004]
+    end
+    
+    MCPInterface --> |JSON-RPC| RunPython
+    MCPInterface --> |JSON-RPC| Memory
+    MCPInterface --> |JSON-RPC| Filesystem
+    MCPInterface --> |JSON-RPC| GitHub
+    
+    subgraph "Isolation Layer"
+        RunPython --> Pyodide[Pyodide WASM Environment]
+        Memory --> MemoryStore[In-Memory KV Store]
+        Filesystem --> SandboxedFS[Sandboxed Filesystem]
+        GitHub --> GitHubAPI[GitHub API]
+    end
+#+end_src
+
+* Installation Instructions
+
+** Set up MCP.el
+
+1. Create directory for the package:
+   
+   #+begin_src shell :tangle setup-mcp.sh :mkdirp yes
+   #!/bin/bash
+   
+   # Create directory for the Emacs package
+   mkdir -p ~/.emacs.d/lisp/
+   
+   # Create directory for MCP configurations
+   mkdir -p ~/mcp/config
+   #+end_src
+
+2. Copy the MCP Emacs package:
+   
+   #+begin_src shell :tangle setup-mcp.sh :mkdirp yes
+   # Copy the MCP Emacs package
+   cp ../integrations/mcp/environments/emacs.el ~/.emacs.d/lisp/mcp.el
+   
+   # Copy MCP server configurations
+   cp ../integrations/mcp/config.json ~/mcp/config/
+   cp ../integrations/mcp/mcp-servers.json ~/mcp/config/
+   #+end_src
+
+3. Add to your Emacs configuration:
+   
+   #+begin_src emacs-lisp :tangle init-mcp.el :mkdirp yes
+   ;; MCP - Model Context Protocol integration
+   
+   ;; Add the directory to your load path
+   (add-to-list 'load-path "~/.emacs.d/lisp/")
+   
+   ;; Load MCP.el
+   (require 'mcp)
+   
+   ;; Configure MCP server timeout
+   (setq mcp-default-timeout 30000)
+   
+   ;; Enable MCP for org-babel
+   (with-eval-after-load 'org
+     (add-to-list 'org-babel-load-languages '(mcp-python . t))
+     (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+   #+end_src
+
+** Install Required Dependencies
+
+Ensure you have the required dependencies:
+
+#+begin_src shell :tangle check-dependencies.sh :mkdirp yes
+#!/bin/bash
+
+# Check for deno
+command -v deno || echo "Deno not installed"
+
+# Check for Node.js and npm
+command -v node || echo "Node.js not installed"
+command -v npm || echo "npm not installed"
+
+# Install Deno if needed
+if ! command -v deno &> /dev/null; then
+    echo "Installing Deno..."
+    curl -fsSL https://deno.land/install.sh | sh
+    echo 'export DENO_INSTALL="$HOME/.deno"' >> ~/.bashrc
+    echo 'export PATH="$DENO_INSTALL/bin:$PATH"' >> ~/.bashrc
+    echo "Please restart your shell or run: source ~/.bashrc"
+fi
+
+# Instructions for Node.js and npm
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo "Please install Node.js and npm using your package manager"
+    echo "For example, on Ubuntu/Debian: sudo apt update && sudo apt install -y nodejs npm"
+    echo "Or visit: https://nodejs.org/"
+fi
+#+end_src
+
+* Usage Guide
+
+** Starting MCP Servers
+
+#+begin_src emacs-lisp :tangle examples/start-servers.el :mkdirp yes
+;; Start individual servers
+(mcp-start-server 'run-python)  ; Python execution
+(mcp-start-server 'memory)      ; Memory store
+(mcp-start-server 'filesystem)  ; Filesystem operations
+(mcp-start-server 'github)      ; GitHub operations
+
+;; Or start all servers at once
+(mcp-start-all-servers)
+#+end_src
+
+** Running Python Code
+
+#+begin_src emacs-lisp :tangle examples/run-python.el :mkdirp yes
+;; Run Python code string
+(mcp-run-python-code "
+import numpy as np
+x = np.array([1, 2, 3])
+print(f'Squared values: {x ** 2}')
+x.sum()
+")
+
+;; Run Python code from region
+;; Select a region and call:
+(defun my-run-region-with-mcp ()
+  "Run the selected region with MCP Python."
+  (interactive)
+  (when (use-region-p)
+    (mcp-run-python-region (region-beginning) (region-end))))
+
+;; Bind to a key if desired
+(global-set-key (kbd "C-c m r") 'my-run-region-with-mcp)
+#+end_src
+
+** Using the Memory Server
+
+#+begin_src emacs-lisp :tangle examples/memory-server.el :mkdirp yes
+;; Store a value
+(mcp-call-function 'memory "tools/call"
+                  '(("name" . "memory_store")
+                    ("arguments" . (("key" . "example_key")
+                                   ("value" . "example_value")))))
+
+;; Retrieve a value
+(mcp-call-function 'memory "tools/call"
+                  '(("name" . "memory_retrieve")
+                    ("arguments" . (("key" . "example_key")))))
+#+end_src
+
+** Org-Babel Integration
+
+Enable the `mcp-python` language in org-babel:
+
+#+begin_src emacs-lisp :tangle org-babel-setup.el :mkdirp yes
+;; Enable MCP Python for org-babel
+(with-eval-after-load 'org
+  (add-to-list 'org-babel-load-languages '(mcp-python . t))
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
+;; Optional: Don't ask for confirmation when executing MCP Python blocks
+(defun my-org-confirm-babel-evaluate (lang body)
+  (not (string= lang "mcp-python")))
+(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+#+end_src
+
+Use in org-mode documents:
+
+#+begin_src org :tangle examples/org-example.org :mkdirp yes
+,#+TITLE: MCP Python in Org-Mode
+,#+AUTHOR: Jason Walsh
+
+,* Data Visualization Example
+
+Let's create a simple data visualization:
+
+,#+BEGIN_SRC mcp-python
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# Generate data
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create plot
+plt.figure(figsize=(8, 4))
+plt.plot(x, y)
+plt.title('Sine Wave')
+
+# Return as data URL
+buf = io.BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+img_str = base64.b64encode(buf.read()).decode('utf-8')
+f"data:image/png;base64,{img_str}"
+,#+END_SRC
+#+end_src
+
+* Advanced Topics
+
+** Cross-Server Communication
+
+Example of Python code accessing the Memory server:
+
+#+begin_src python :tangle examples/cross-server.py :mkdirp yes
+import requests
+import json
+
+# Retrieve data from Memory server
+response = requests.post(
+    'http://localhost:3002',
+    json={
+        'jsonrpc': '2.0',
+        'method': 'tools/call',
+        'params': {
+            'name': 'memory_retrieve',
+            'arguments': {
+                'key': 'data'
+            }
+        },
+        'id': 1
+    }
+)
+
+data = response.json()['result']['memory_value']
+print(f"Retrieved: {data}")
+#+end_src
+
+** Custom Integrations
+
+Create custom functions for specific workflows:
+
+#+begin_src emacs-lisp :tangle examples/custom-functions.el :mkdirp yes
+(defun my-mcp-evaluate-math (expression)
+  "Evaluate a mathematical EXPRESSION using MCP Python."
+  (interactive "sEnter math expression: ")
+  (mcp-run-python-code (format "
+import numpy as np
+from sympy import symbols, sympify, solve
+import math
+
+# Define common symbols
+x, y, z = symbols('x y z')
+
+# Evaluate the expression
+result = eval('%s')
+print(f'Result: {result}')
+result
+" expression)))
+
+;; Data Analysis Helper
+(defun my-mcp-analyze-csv (file)
+  "Analyze a CSV file using MCP Python."
+  (interactive "fSelect CSV file: ")
+  (mcp-run-python-code (format "
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+import json
+
+# Read the CSV file
+df = pd.read_csv('%s')
+
+# Basic statistics
+stats = df.describe().to_dict()
+
+# Preview of the data
+print(f'Data preview:\\n{df.head()}\\n')
+
+# Column info
+print(f'Columns: {list(df.columns)}')
+print(f'Data types:\\n{df.dtypes}\\n')
+
+# Missing values
+print(f'Missing values:\\n{df.isnull().sum()}\\n')
+
+# Create a simple visualization if numeric columns exist
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+if numeric_cols:
+    plt.figure(figsize=(10, 6))
+    for col in numeric_cols[:3]:  # Plot up to 3 columns
+        plt.plot(df[col], label=col)
+    plt.legend()
+    plt.title('Numeric Column Trends')
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode('utf-8')
+    plot_data = f'data:image/png;base64,{img_str}'
+else:
+    plot_data = None
+
+# Return summary data
+{
+    'rows': len(df),
+    'columns': len(df.columns),
+    'column_names': list(df.columns),
+    'stats': stats,
+    'plot': plot_data
+}
+" file)))
+#+end_src
+
+* Examples
+
+See the =examples/= directory for complete usage examples:
+
+- Basic usage with multiple servers
+- Data analysis workflows
+- Visualizations
+- Custom integrations
+
+* Troubleshooting
+
+** Server Start Issues
+
+If servers fail to start:
+
+- Check that dependencies (Deno, Node.js, npm) are installed
+- Verify port availability (default ports: 3001-3004)
+- Check server process buffers for error messages
+
+#+begin_src emacs-lisp :tangle troubleshooting.el :mkdirp yes
+;; Check if ports are in use
+(defun my-mcp-check-ports ()
+  "Check if MCP ports are in use."
+  (interactive)
+  (shell-command "nc -z localhost 3001 && echo 'Port 3001 in use' || echo 'Port 3001 available'")
+  (shell-command "nc -z localhost 3002 && echo 'Port 3002 in use' || echo 'Port 3002 available'")
+  (shell-command "nc -z localhost 3003 && echo 'Port 3003 in use' || echo 'Port 3003 available'")
+  (shell-command "nc -z localhost 3004 && echo 'Port 3004 in use' || echo 'Port 3004 available'"))
+
+;; Debug MCP server commands
+(defun my-mcp-debug-server-commands ()
+  "Display commands used to start MCP servers."
+  (interactive)
+  (message "Run Python: %s" (mapconcat 'identity (alist-get 'run-python mcp-servers-alist) " "))
+  (message "Memory: %s" (mapconcat 'identity (alist-get 'memory mcp-servers-alist) " "))
+  (message "Filesystem: %s" (mapconcat 'identity (alist-get 'filesystem mcp-servers-alist) " "))
+  (message "GitHub: %s" (mapconcat 'identity (alist-get 'github mcp-servers-alist) " ")))
+#+end_src
+
+** Python Module Errors
+
+The MCP Python environment uses Pyodide, which has limitations:
+
+- Not all Python packages are available
+- Some packages may have limited functionality
+- No direct file system or network access
+
+#+begin_src emacs-lisp :tangle examples/check-modules.el :mkdirp yes
+;; Check available modules in Pyodide
+(mcp-run-python-code "
+import sys
+import micropip
+
+# List standard library modules
+std_lib = [m for m in sys.modules.keys()]
+print('Standard library modules available:', sorted(std_lib)[:10], '...')
+
+# List installed packages
+try:
+    installed = micropip.list()
+    print('\\nInstalled packages:', installed)
+except Exception as e:
+    print('Error listing packages:', e)
+
+# Check specific modules
+modules_to_check = ['numpy', 'pandas', 'matplotlib', 'sympy', 'scipy']
+for module in modules_to_check:
+    try:
+        __import__(module)
+        print(f'Module {module} is available')
+    except ImportError:
+        print(f'Module {module} is NOT available')
+")
+#+end_src
+
+** Timeout Issues
+
+For long-running calculations:
+
+#+begin_src emacs-lisp :tangle examples/increase-timeout.el :mkdirp yes
+;; Increase timeout for MCP requests
+(setq mcp-default-timeout 60000)  ;; 60 seconds
+
+;; For very long running tasks
+(defun my-mcp-run-with-long-timeout (code)
+  "Run Python CODE with an extended timeout."
+  (interactive "sPython code: ")
+  (let ((mcp-default-timeout 120000))  ;; 2 minutes
+    (mcp-run-python-code code)))
+#+end_src
+
+* Resources and References
+
+- [[https://github.com/pydantic/pydantic-ai/tree/main/mcp-run-python][Pydantic MCP Run Python Server]]
+- [[https://modelcontextprotocol.ai/][Model Context Protocol Specification]]
+- [[https://github.com/pydantic/pydantic-ai][Pydantic AI Repository]]
+
+* Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- Additional MCP server integrations
+- Enhanced org-babel support
+- Better error handling and debugging
+- UI improvements for server management
+
+* License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
