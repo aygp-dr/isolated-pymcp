@@ -1,19 +1,22 @@
 """
 Configuration for MultilspyLSP server
+
+This module provides the configuration settings for the MultilspyLSP server,
+which is used to provide language server capabilities for Python code.
 """
 import os
-import sys
+from typing import Dict, List, Union
 
 # Server configuration
-SERVER_CONFIG = {
-    "port": int(os.environ.get("MCP_MULTILSPY_PORT", 3005)),
+SERVER_CONFIG: Dict[str, Union[int, str]] = {
+    "port": int(os.environ.get("MCP_MULTILSPY_PORT", "3005")),
     "host": "0.0.0.0",
     "log_level": "info",
     "timeout": 30,
 }
 
 # Language server configurations
-LANGUAGE_SERVERS = {
+LANGUAGE_SERVERS: Dict[str, Dict[str, Union[List[str], Dict]]] = {
     "python": {
         "command": ["pylsp"],
         "settings": {
@@ -39,7 +42,7 @@ LANGUAGE_SERVERS = {
 }
 
 # Additional server settings
-ADDITIONAL_SETTINGS = {
+ADDITIONAL_SETTINGS: Dict[str, Union[str, int]] = {
     "workspace_root": "/home/mcp",
     "max_workers": 4,
     "timeout_seconds": 30,

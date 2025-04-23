@@ -1,0 +1,37 @@
+#+TITLE: MCP Org-Babel Example
+#+AUTHOR: Jason Walsh
+
+* Example of MCP Python in Org-Babel
+
+This is an example of using MCP Python in Org-Babel:
+
+#+BEGIN_SRC mcp-python
+import numpy as np
+x = np.array([1, 2, 3])
+x ** 2
+#+END_SRC
+
+* Another Example with Visualization
+
+#+BEGIN_SRC mcp-python
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# Generate data
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create plot
+plt.figure(figsize=(8, 4))
+plt.plot(x, y)
+plt.title('Sine Wave')
+
+# Return as data URL
+buf = io.BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+img_str = base64.b64encode(buf.read()).decode('utf-8')
+f"data:image/png;base64,{img_str}"
+#+END_SRC

@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "runPython",
+  "params": {
+    "files": [
+      {
+        "name": "main.py",
+        "content": "import sys\nsys.path.append('.')\nfrom algorithms.primes import is_prime, find_primes, benchmark_primes\n\nprint('Testing is_prime function:')\nfor n in [2, 3, 4, 5, 6, 7, 11, 12, 13]:\n    print(f'{n} is prime: {is_prime(n)}')\n\nprint('\\nFinding primes up to 20:')\nprimes = find_primes(20)\nprint(f'Primes up to 20: {primes}')\n\nprint('\\nBenchmarking prime functions:')\nbenchmark_primes(100)",
+        "active": true
+      }
+    ]
+  }
+}

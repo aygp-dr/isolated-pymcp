@@ -3,6 +3,8 @@ Tests for Prime number implementations
 """
 
 import pytest
+from typing import Callable, List
+
 from algorithms.primes import (
     is_prime_naive,
     is_prime_optimized,
@@ -60,7 +62,7 @@ PRIMES_UNDER_100 = [
         (100, False),  # 100 is not prime
     ],
 )
-def test_is_prime_naive(n, expected):
+def test_is_prime_naive(n: int, expected: bool) -> None:
     """Test naive primality check."""
     assert is_prime_naive(n) == expected
 
@@ -84,30 +86,30 @@ def test_is_prime_naive(n, expected):
         (997, True),  # 997 is prime
     ],
 )
-def test_is_prime_optimized(n, expected):
+def test_is_prime_optimized(n: int, expected: bool) -> None:
     """Test optimized primality check."""
     assert is_prime_optimized(n) == expected
 
 
-def test_primes_up_to():
+def test_primes_up_to() -> None:
     """Test generation of primes up to a limit using trial division."""
     assert primes_up_to(100) == PRIMES_UNDER_100
     assert len(primes_up_to(1000)) == 168  # There are 168 primes under 1000
 
 
-def test_sieve_of_eratosthenes():
+def test_sieve_of_eratosthenes() -> None:
     """Test Sieve of Eratosthenes implementation."""
     assert sieve_of_eratosthenes(100) == PRIMES_UNDER_100
     assert len(sieve_of_eratosthenes(1000)) == 168
 
 
-def test_segmented_sieve():
+def test_segmented_sieve() -> None:
     """Test segmented Sieve of Eratosthenes implementation."""
     assert segmented_sieve(100) == PRIMES_UNDER_100
     assert len(segmented_sieve(1000)) == 168
 
 
-def test_prime_algorithm_consistency():
+def test_prime_algorithm_consistency() -> None:
     """Test that all prime generation methods produce the same results."""
     limit = 1000
 
@@ -140,7 +142,7 @@ def test_prime_algorithm_consistency():
         segmented_sieve,
     ],
 )
-def test_prime_large_n(func):
+def test_prime_large_n(func: Callable[[int], List[int]]) -> None:
     """Test prime generation implementations with larger inputs."""
     # Skip trial division for large n as it would be too slow
     n = 10000

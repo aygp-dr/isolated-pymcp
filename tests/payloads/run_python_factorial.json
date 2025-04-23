@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0", 
+  "method": "tools/call", 
+  "params": {
+    "name": "run_python_code", 
+    "input": {
+      "python_code": "import sys\nsys.path.append('.')\nfrom algorithms.factorial import factorial_iterative, factorial_recursive\n\ndef test_factorial(n):\n    print(f'Testing factorial functions with n={n}')\n    print(f'Iterative approach: {n}! = {factorial_iterative(n)}')\n    print(f'Recursive approach: {n}! = {factorial_recursive(n)}')\n    print()\n\nfor i in range(5, 11):\n    test_factorial(i)"
+    }
+  }, 
+  "id": 3
+}

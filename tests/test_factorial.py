@@ -3,6 +3,8 @@ Tests for Factorial implementations
 """
 
 import pytest
+from typing import Callable
+
 from algorithms.factorial import (
     factorial_recursive,
     factorial_tail_recursive,
@@ -32,7 +34,7 @@ FACTORIAL_VALUES = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800]
         (10, 3628800),
     ],
 )
-def test_factorial_recursive(n, expected):
+def test_factorial_recursive(n: int, expected: int) -> None:
     """Test recursive implementation of factorial."""
     assert factorial_recursive(n) == expected
 
@@ -47,7 +49,7 @@ def test_factorial_recursive(n, expected):
         (10, 3628800),
     ],
 )
-def test_factorial_tail_recursive(n, expected):
+def test_factorial_tail_recursive(n: int, expected: int) -> None:
     """Test tail-recursive implementation of factorial."""
     assert factorial_tail_recursive(n) == expected
 
@@ -63,7 +65,7 @@ def test_factorial_tail_recursive(n, expected):
         (15, 1307674368000),
     ],
 )
-def test_factorial_memoized(n, expected):
+def test_factorial_memoized(n: int, expected: int) -> None:
     """Test memoized implementation of factorial."""
     assert factorial_memoized(n) == expected
 
@@ -79,7 +81,7 @@ def test_factorial_memoized(n, expected):
         (15, 1307674368000),
     ],
 )
-def test_factorial_iterative(n, expected):
+def test_factorial_iterative(n: int, expected: int) -> None:
     """Test iterative implementation of factorial."""
     assert factorial_iterative(n) == expected
 
@@ -95,12 +97,12 @@ def test_factorial_iterative(n, expected):
         (15, 1307674368000),
     ],
 )
-def test_factorial_math(n, expected):
+def test_factorial_math(n: int, expected: int) -> None:
     """Test math module implementation of factorial."""
     assert factorial_math(n) == expected
 
 
-def test_factorial_implementations_consistency():
+def test_factorial_implementations_consistency() -> None:
     """Test that all implementations produce the same results."""
     for n in range(10):
         recursive = factorial_recursive(n)
@@ -120,7 +122,7 @@ def test_factorial_implementations_consistency():
         factorial_math,
     ],
 )
-def test_factorial_large_n(func):
+def test_factorial_large_n(func: Callable[[int], int]) -> None:
     """Test factorial implementations with larger inputs."""
     # Skip recursive implementation for large n due to stack overflow risk
     n = 20

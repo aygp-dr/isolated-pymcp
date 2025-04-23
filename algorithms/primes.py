@@ -118,6 +118,9 @@ def segmented_sieve(n: int, segment_size: int = 10000) -> List[int]:
     This implementation uses less memory for large values of n by
     dividing the range into segments.
 
+    Time complexity: O(n log log n)
+    Space complexity: O(sqrt(n) + segment_size)
+
     Args:
         n: Upper limit for prime number generation
         segment_size: Size of segments to process

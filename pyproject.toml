@@ -11,18 +11,27 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "python-lsp-server>=1.12.2",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/aygp-dr/isolated-pymcp"
 "Bug Tracker" = "https://github.com/aygp-dr/isolated-pymcp/issues"
+
+[tool.setuptools.packages.find]
+include = ["algorithms"]
+exclude = ["data", "emacs", "config", "diagrams", "tutorials", "node_modules", ".venv", "docs", ".claude", ".vscode"]
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.black]
 line-length = 100

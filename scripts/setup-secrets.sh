@@ -27,12 +27,13 @@ for secret in "${REQUIRED_SECRETS[@]}"; do
 done
 
 # Create a script to get secrets for the container
-cat > get_secrets.sh << 'INNER_EOF'
-#\!/bin/bash
+SCRIPT_DIR="$(dirname "$0")"
+cat > "${SCRIPT_DIR}/get-secrets.sh" << 'INNER_EOF'
+#!/bin/bash
 # Script to retrieve secrets for container
 
 # Check if GitHub CLI is authenticated
-if \! gh auth status &>/dev/null; then
+if ! gh auth status &>/dev/null; then
   echo "GitHub CLI not authenticated. Please run 'gh auth login' first."
   exit 1
 fi
@@ -51,8 +52,8 @@ grep -v -E "(GITHUB_TOKEN|ANTHROPIC_API_KEY)" .envrc.example >> .env
 echo "Secrets retrieved and saved to .env file"
 INNER_EOF
 
-chmod +x get_secrets.sh
-echo "Created get_secrets.sh script to retrieve secrets"
+chmod +x "${SCRIPT_DIR}/get-secrets.sh"
+echo "Created ${SCRIPT_DIR}/get-secrets.sh script to retrieve secrets"
 
 # Update docker-compose.yml to use .env file
 echo "Note: docker-compose.yml has already been updated to use .env file"

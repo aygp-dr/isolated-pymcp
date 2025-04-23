@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
 Simple utility to execute Python code via MCP Python runner
+
+This script allows executing Python code snippets through the MCP Python runner
+from the command line.
 """
 import asyncio
 import sys
+from typing import Any, Dict
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -29,7 +34,12 @@ server_params = StdioServerParameters(
     ],
 )
 
-async def main():
+async def main() -> None:
+    """
+    Main function that executes the provided Python code using MCP Python runner.
+    
+    Connects to the MCP server, runs the code, and prints the result.
+    """
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()

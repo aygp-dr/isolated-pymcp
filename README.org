@@ -97,9 +97,9 @@ gh auth login
 
 #+BEGIN_SRC shell
 # Run the secrets setup script
-./setup_secrets.sh
+./scripts/setup_secrets.sh
 
-# Update the GitHub secrets with your actual keys
+# Or manually update the GitHub secrets with your actual keys
 gh secret edit GH_PAT
 gh secret edit ANTHROPIC_API_KEY
 #+END_SRC
@@ -126,9 +126,11 @@ make analyze ALGO=fibonacci
 
 ** Command Reference
 
-Run ~make~ for a full list of available commands.
+Run ~make~ or ~gmake help~ for a full list of available commands. 
 
-Key commands:
+Key commands for getting started:
+- ~make build~ - Build the Docker/Podman image
+- ~make run~ - Start container with mounted volumes
 - ~make test~ - Verify MCP server connectivity
 - ~make analyze ALGO=fibonacci~ - Analyze algorithm via MCP
 - ~make claude-analyze ALGO=fibonacci~ - Use Claude to analyze code
@@ -146,9 +148,55 @@ The project includes custom commands for Claude Code:
 - ~/create-pr~ - Create pull requests with standardized formatting
 - ~/analyze-algorithm~ - Perform detailed analysis of algorithm implementations
 
+*** Using MCP Run Python Directly
+
+You can interact with the MCP Run Python server directly using Deno. The correct JSON-RPC format for calling Python code is:
+
+#+BEGIN_SRC json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "run_python_code",
+    "arguments": {
+      "python_code": "print(\"Hello, MCP!\")"
+    }
+  },
+  "id": 1
+}
+#+END_SRC
+
+Example usage:
+
+#+BEGIN_SRC bash
+echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "run_python_code", "arguments": {"python_code": "result = 40 + 2\nprint(f\"The answer is: {result}\")\nresult"}}, "id": 1}' | \
+deno run -N -R=node_modules -W=node_modules --node-modules-dir=auto \
+--allow-read=. jsr:@pydantic/mcp-run-python stdio | jq
+#+END_SRC
+
+To access the algorithms in this repository, use:
+
+#+BEGIN_SRC python
+import sys
+sys.path.append('.')
+from algorithms.factorial import factorial_iterative
+
+result = factorial_iterative(5)
+print(f"Factorial of 5 is {result}")
+#+END_SRC
+
+Before committing changes, always run:
+1. ~gmake help~ - Verify all targets are documented
+2. ~gmake lint~ - Ensure code passes style checks
+3. ~gmake test~ - Verify functionality works
+
 The project uses literate programming with org-mode. Configuration files are generated from
 ~env-setup.org~ using the tangle process. If you modify generated files directly, use detangle
 to propagate changes back to the org source.
+
+*** Scripts
+
+Utility scripts are available in the ~scripts/~ directory. Scripts include setup tools, MCP management, and analysis utilities. Use `ls -la scripts/` to see all available scripts.
 
 ** Development Workflow
 

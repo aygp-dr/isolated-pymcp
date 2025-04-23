@@ -1,0 +1,14 @@
+{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "textDocument/hover",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py"
+        },
+        "position": {
+            "line": 5,
+            "character": 10
+        }
+    }
+}

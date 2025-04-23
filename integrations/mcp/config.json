@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "description": "Core MCP configuration for isolated-pymcp",
+  "defaultServers": {
+    "runPython": "http://localhost:3001",
+    "memory": "http://localhost:3002",
+    "filesystem": "http://localhost:3003",
+    "github": "http://localhost:3004"
+  },
+  "timeout": 30000,
+  "isolationMode": "strict",
+  "logging": {
+    "level": "info",
+    "format": "json"
+  }
+}

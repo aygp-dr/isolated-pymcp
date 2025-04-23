@@ -1,0 +1,18 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/publishDiagnostics",
+    "params": {
+        "uri": "file:///path/to/file.py",
+        "diagnostics": [
+            {
+                "range": {
+                    "start": {"line": 5, "character": 10},
+                    "end": {"line": 5, "character": 15}
+                },
+                "severity": 1,
+                "source": "pylint",
+                "message": "Variable is undefined"
+            }
+        ]
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didOpen",
+    "params": {
+        "textDocument": {
+            "uri": "file:///path/to/file.py",
+            "languageId": "python",
+            "version": 1,
+            "text": "def example_function(param):\n    return param.upper()\n"
+        }
+    }
+}

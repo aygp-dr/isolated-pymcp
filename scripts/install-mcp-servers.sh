@@ -23,31 +23,6 @@ else
     echo "Memory MCP server already installed."
 fi
 
-# Check and install Github MCP server
-echo "Checking Github MCP server..."
-if ! claude mcp list | grep -q "github"; then
-    echo "Installing Github MCP server..."
-    claude mcp add github
-else
-    echo "Github MCP server already installed."
-fi
-
-# Check and install LSP servers
-echo "Checking Python LSP servers..."
-if ! claude mcp list | grep -q "multilspy"; then
-    echo "Installing Multi LSP server..."
-    claude mcp add multilspy
-else
-    echo "Multi LSP server already installed."
-fi
-
-if ! claude mcp list | grep -q "python-lsp"; then
-    echo "Installing Python LSP server..."
-    claude mcp add python-lsp
-else
-    echo "Python LSP server already installed."
-fi
-
 # Install prerequisites for Python Runner
 echo "Installing prerequisites..."
 npm install

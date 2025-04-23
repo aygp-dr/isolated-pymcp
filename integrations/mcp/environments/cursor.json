@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "runPython": {
+      "command": "deno",
+      "args": ["run", "-N", "-R=node_modules", "-W=node_modules", "--node-modules-dir=auto", "--allow-read=${workspaceFolder}", "jsr:@pydantic/mcp-run-python", "stdio"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+    }
+  },
+  "editorConfig": {
+    "autoConnectMcp": true,
+    "aiAssistanceConfig": {
+      "enableCodeAnalysis": true,
+      "enableLintingFixes": true,
+      "codeCompletionProvider": "anthropic",
+      "contextWindowSize": "16k"
+    },
+    "shortcuts": {
+      "runWithMcp": "ctrl+shift+r",
+      "analyzeWithMcp": "ctrl+shift+a"
+    }
+  },
+  "isolation": {
+    "mode": "strict",
+    "allowedModules": ["numpy", "pandas", "matplotlib"],
+    "timeout": 30000
+  }
+}

@@ -1,0 +1,10 @@
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "contents": {
+            "kind": "markdown",
+            "value": "```python\ndef example_function(param: str) -> None\n```\n\nThis is an example function that does something with the parameter."
+        }
+    }
+}
