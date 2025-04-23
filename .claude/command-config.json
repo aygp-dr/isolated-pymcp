@@ -1,0 +1,37 @@
+{
+  "commandMappings": {
+    "user:mise-en-place": "mise-en-place",
+    "user:check-category": "check-category",
+    "user:check-filename-consistency": "check-filename-consistency",
+    "user:check-rule": "check-rule",
+    "user:doc-align": "doc-align",
+    "user:fix-github-issue": "fix-github-issue",
+    "user:generate-docs": "generate-docs",
+    "user:issue-triage": "issue-triage",
+    "user:lint-code": "lint-code",
+    "user:lint-fix": "lint-fix",
+    "user:security-review": "security-review",
+    "user:security-review-full": "security-review-full",
+    "user:validate-issue-labels": "validate-issue-labels"
+  },
+  "commandPaths": {
+    "mise-en-place": ".claude/commands/mise-en-place.md",
+    "check-category": ".claude/commands/check-category.md",
+    "check-filename-consistency": ".claude/commands/check-filename-consistency.md",
+    "check-rule": ".claude/commands/check-rule.md",
+    "doc-align": ".claude/commands/doc-align.md",
+    "fix-github-issue": ".claude/commands/fix-github-issue.md",
+    "generate-docs": ".claude/commands/generate-docs.md",
+    "issue-triage": ".claude/commands/issue-triage.md",
+    "lint-code": ".claude/commands/lint-code.md",
+    "lint-fix": ".claude/commands/lint-fix.md",
+    "security-review": ".claude/commands/security-review.md",
+    "security-review-full": ".claude/commands/security-review-full.md",
+    "validate-issue-labels": ".claude/commands/validate-issue-labels.md",
+    "worktree": ".claude/commands/worktree.md",
+    "new-worktree": ".claude/commands/new-worktree.md",
+    "list-worktrees": ".claude/commands/list-worktrees.md",
+    "delete-worktree": ".claude/commands/delete-worktree.md",
+    "switch-worktree": ".claude/commands/switch-worktree.md"
+  }
+}
