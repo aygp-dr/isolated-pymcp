@@ -1,0 +1,413 @@
+#+TITLE: One-Day Tutorial: Claude Code with Org-Mode
+#+AUTHOR: daidaitaotao
+#+DATE: 2025-04-22
+#+OPTIONS: toc:3 num:t
+#+PROPERTY: header-args :eval never-export
+
+* Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:END:
+
+This one-day tutorial provides a comprehensive introduction to using Claude Code in conjunction with Org-mode. By the end of this tutorial, you'll be able to leverage Claude Code's capabilities within Emacs and Org-mode for a seamless AI-assisted development workflow.
+
+** Prerequisites
+:PROPERTIES:
+:CUSTOM_ID: prerequisites
+:END:
+
+- Basic familiarity with Emacs and Org-mode
+- Claude Code CLI installed
+- Anthropic API key or AWS Bedrock access
+- Git and GitHub CLI configured
+
+* Part 1: Getting Started (Morning Session)
+:PROPERTIES:
+:CUSTOM_ID: part-1
+:END:
+
+** Setting Up Claude Code
+:PROPERTIES:
+:CUSTOM_ID: setup
+:END:
+
+First, let's ensure Claude Code is properly installed and configured:
+
+#+begin_src shell
+# Install Claude Code globally
+npm install -g @anthropic-ai/claude-code
+
+# Verify installation
+claude --version
+
+# Configure with API key
+export ANTHROPIC_API_KEY=sk-ant-xxxx
+
+# Alternative: Configure for AWS Bedrock
+export CLAUDE_CODE_USE_BEDROCK=1
+#+end_src
+
+** Integrating Claude Code with Emacs
+:PROPERTIES:
+:CUSTOM_ID: emacs-integration
+:END:
+
+Create a simple Emacs integration for Claude Code:
+
+#+begin_src emacs-lisp
+;; Claude Code integration for Emacs
+(defun claude-code-region (start end)
+  "Send the current region to Claude Code and display results."
+  (interactive "r")
+  (let ((region-text (buffer-substring-no-properties start end))
+        (result-buffer (get-buffer-create "*Claude Code Output*")))
+    (with-current-buffer result-buffer
+      (erase-buffer)
+      (insert "Claude Code is processing...\n\n"))
+    (display-buffer result-buffer)
+    (make-process
+     :name "claude-code"
+     :buffer result-buffer
+     :command (list "claude" region-text)
+     :sentinel (lambda (process event)
+                 (when (string= event "finished\n")
+                   (with-current-buffer (process-buffer process)
+                     (goto-char (point-min))
+                     (insert "Claude Code Results:\n\n")))))))
+
+;; Bind to a convenient key
+(global-set-key (kbd "C-c C-j") 'claude-code-region)
+#+end_src
+
+** Basic Org-Mode Integration
+:PROPERTIES:
+:CUSTOM_ID: org-mode-basics
+:END:
+
+Let's create a simple integration that works with Org-mode:
+
+#+begin_src emacs-lisp
+(defun claude-code-org-block ()
+  "Send the current org source block to Claude Code and insert results."
+  (interactive)
+  (when (org-in-src-block-p)
+    (let* ((element (org-element-at-point))
+           (content (org-element-property :value element))
+           (begin (org-element-property :begin element))
+           (end (org-element-property :end element))
+           (result-buffer (get-buffer-create "*Claude Code Temp*")))
+      (with-current-buffer result-buffer
+        (erase-buffer))
+      (make-process
+       :name "claude-code-org"
+       :buffer result-buffer
+       :command (list "claude" content)
+       :sentinel (lambda (process event)
+                   (when (string= event "finished\n")
+                     (with-current-buffer (process-buffer process)
+                       (let ((result (buffer-string)))
+                         (save-excursion
+                           (goto-char end)
+                           (insert "\n#+RESULTS:\n#+begin_example\n" result "\n#+end_example\n"))))))))))
+
+;; Bind to a convenient key
+(global-set-key (kbd "C-c C-k") 'claude-code-org-block)
+#+end_src
+
+* Part 2: Advanced Usage (Afternoon Session)
+:PROPERTIES:
+:CUSTOM_ID: part-2
+:END:
+
+** Creating Custom Commands with Org-Babel
+:PROPERTIES:
+:CUSTOM_ID: custom-commands
+:END:
+
+Use Org-babel to create reusable Claude Code commands:
+
+#+begin_src org
+,#+NAME: claude-explain
+,#+BEGIN_SRC emacs-lisp :var code=""
+(with-temp-buffer
+  (call-process "claude" nil t nil (concat "Explain this code: " code))
+  (buffer-string))
+,#+END_SRC
+
+,#+NAME: claude-optimize
+,#+BEGIN_SRC emacs-lisp :var code=""
+(with-temp-buffer
+  (call-process "claude" nil t nil (concat "Optimize this code for performance: " code))
+  (buffer-string))
+,#+END_SRC
+
+,* Example Usage
+,#+BEGIN_SRC python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+,#+END_SRC
+
+,#+CALL: claude-explain(code=previous-code-block)
+
+,#+CALL: claude-optimize(code=previous-code-block)
+#+end_src
+
+** Structured Documentation Generation
+:PROPERTIES:
+:CUSTOM_ID: documentation-generation
+:END:
+
+Use Claude Code to generate structured documentation in Org format:
+
+#+begin_src emacs-lisp
+(defun claude-generate-org-docs (file-path)
+  "Generate Org documentation for a source file using Claude Code."
+  (interactive "fSelect source file: ")
+  (let ((content (with-temp-buffer
+                   (insert-file-contents file-path)
+                   (buffer-string)))
+        (result-buffer (get-buffer-create "*Generated Docs*")))
+    (with-current-buffer result-buffer
+      (erase-buffer)
+      (org-mode)
+      (insert "#+TITLE: Documentation for " (file-name-nondirectory file-path) "\n")
+      (insert "#+DATE: " (format-time-string "%Y-%m-%d") "\n\n")
+      (insert "* Generating documentation...\n"))
+    (display-buffer result-buffer)
+    (make-process
+     :name "claude-docs"
+     :buffer result-buffer
+     :command (list "claude" 
+                    (concat "Analyze this code and generate comprehensive documentation in Org-mode format. "
+                            "Include sections for: Overview, Functions/Classes, Dependencies, Usage Examples, and Testing. "
+                            "Use proper Org syntax with headings, lists, and code blocks. Here's the code:\n\n" content))
+     :sentinel (lambda (process event)
+                 (when (string= event "finished\n")
+                   (with-current-buffer (process-buffer process)
+                     (goto-char (point-min))
+                     (kill-line 3)))))))
+#+end_src
+
+** Project Management with Org and Claude
+:PROPERTIES:
+:CUSTOM_ID: project-management
+:END:
+
+Combine Org-mode's project management capabilities with Claude Code:
+
+#+begin_src emacs-lisp
+(defun claude-analyze-org-project ()
+  "Analyze the current Org project structure using Claude Code."
+  (interactive)
+  (let ((project-content (buffer-string))
+        (result-buffer (get-buffer-create "*Project Analysis*")))
+    (with-current-buffer result-buffer
+      (erase-buffer)
+      (org-mode)
+      (insert "#+TITLE: Project Analysis\n")
+      (insert "#+DATE: " (format-time-string "%Y-%m-%d") "\n\n"))
+    (display-buffer result-buffer)
+    (make-process
+     :name "claude-project"
+     :buffer result-buffer
+     :command (list "claude" 
+                    (concat "Analyze this Org-mode project and provide insights. "
+                            "Identify task dependencies, suggest scheduling improvements, "
+                            "and highlight any potential bottlenecks or missing components. "
+                            "Format your response as an Org-mode document with headings, lists, and tables. "
+                            "Here's the project:\n\n" project-content)))))
+#+end_src
+
+* Part 3: Hands-on Workshop
+:PROPERTIES:
+:CUSTOM_ID: part-3
+:END:
+
+** Exercise 1: Code Analysis with Org-Babel
+:PROPERTIES:
+:CUSTOM_ID: exercise-1
+:END:
+
+Create an Org document that uses Claude Code to analyze different algorithm implementations:
+
+1. Set up source blocks for each algorithm
+2. Create named Org-babel blocks for different Claude Code analyses
+3. Compare the results of different implementations
+
+** Exercise 2: Documentation Project
+:PROPERTIES:
+:CUSTOM_ID: exercise-2
+:END:
+
+Use Claude Code to generate and enhance documentation for an existing project:
+
+1. Import source code into an Org document
+2. Use Claude Code to generate initial documentation
+3. Enhance with specific queries for complex sections
+4. Export the final documentation to desired formats
+
+** Exercise 3: Project Planning Assistant
+:PROPERTIES:
+:CUSTOM_ID: exercise-3
+:END:
+
+Create a planning assistant that combines Org-mode and Claude Code:
+
+1. Set up an Org project template
+2. Create functions to analyze tasks and suggest improvements
+3. Implement a simple interface to query Claude Code about project aspects
+4. Generate project reports and insights
+
+* Resources and References
+:PROPERTIES:
+:CUSTOM_ID: resources
+:END:
+
+** Claude Code Documentation
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview][Claude Code Overview]]
+- [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices]]
+
+** Emacs and Org-mode Resources
+- [[https://orgmode.org/manual/][Org Mode Manual]]
+- [[https://orgmode.org/worg/org-contrib/babel/][Org Babel Documentation]]
+
+** Sample Code Repository
+- [[https://github.com/anthropics/claude-code][Claude Code GitHub Repository]]
+- [[https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile][Claude Code Dev Container]]
+
+* Appendix: Installation Guide
+:PROPERTIES:
+:CUSTOM_ID: appendix
+:END:
+
+** Complete Claude Code Setup for Emacs
+:PROPERTIES:
+:CUSTOM_ID: complete-setup
+:END:
+
+#+begin_src emacs-lisp
+;; Claude Code Integration for Emacs and Org-mode
+
+;; Configuration variables
+(defgroup claude-code nil
+  "Integration with Claude Code AI assistant."
+  :group 'external)
+
+(defcustom claude-code-api-key nil
+  "API key for Claude Code. Set this or use environment variable ANTHROPIC_API_KEY."
+  :type 'string
+  :group 'claude-code)
+
+(defcustom claude-code-use-bedrock nil
+  "Whether to use AWS Bedrock for Claude Code instead of direct API."
+  :type 'boolean
+  :group 'claude-code)
+
+;; Core functionality
+(defun claude-code-query (prompt &optional callback)
+  "Send PROMPT to Claude Code and handle result with optional CALLBACK."
+  (let ((buffer (get-buffer-create "*Claude Code*"))
+        (cmd (if claude-code-use-bedrock
+                 "CLAUDE_CODE_USE_BEDROCK=1 claude"
+               "claude")))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (when claude-code-api-key
+        (setenv "ANTHROPIC_API_KEY" claude-code-api-key)))
+    (make-process
+     :name "claude-code-process"
+     :buffer buffer
+     :command (list shell-file-name "-c" (concat cmd " " (shell-quote-argument prompt)))
+     :sentinel (lambda (process event)
+                 (when (string= event "finished\n")
+                   (if callback
+                       (funcall callback (with-current-buffer buffer (buffer-string)))
+                     (display-buffer buffer)))))))
+
+;; Org-mode integration
+(defun claude-code-org-block ()
+  "Process the current org source block with Claude Code."
+  (interactive)
+  (save-excursion
+    (when (org-in-src-block-p)
+      (let* ((element (org-element-at-point))
+             (language (org-element-property :language element))
+             (content (org-element-property :value element))
+             (prompt (concat "Analyze this " language " code:\n\n" content)))
+        (claude-code-query prompt
+                          (lambda (result)
+                            (org-insert-heading-after-current)
+                            (insert "Claude Code Analysis\n")
+                            (insert result)))))))
+
+;; Documentation generation
+(defun claude-code-generate-docs (start end)
+  "Generate documentation for region using Claude Code."
+  (interactive "r")
+  (let ((code (buffer-substring-no-properties start end))
+        (language (with-current-buffer (current-buffer)
+                    (symbol-name major-mode))))
+    (claude-code-query 
+     (concat "Generate comprehensive documentation for this " 
+             language " code in Org-mode format with proper headings and structure:\n\n" 
+             code))))
+
+;; Key bindings
+(global-set-key (kbd "C-c j q") 'claude-code-query)
+(global-set-key (kbd "C-c j b") 'claude-code-org-block)
+(global-set-key (kbd "C-c j d") 'claude-code-generate-docs)
+
+(provide 'claude-code)
+#+end_src
+
+** Docker Setup for Isolated Environment
+:PROPERTIES:
+:CUSTOM_ID: docker-appendix
+:END:
+
+For an isolated Claude Code environment with Emacs and Org-mode:
+
+#+begin_src dockerfile
+FROM node:20
+
+# Install Emacs and dependencies
+RUN apt-get update && apt-get install -y \
+    emacs \
+    git \
+    procps \
+    sudo \
+    zsh \
+    curl \
+    wget \
+    jq \
+    gh
+
+# Set up non-root user
+ARG USERNAME=claude
+RUN useradd -m -s /bin/zsh $USERNAME && \
+    usermod -aG sudo $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME
+
+# Create working directories
+RUN mkdir -p /workspace /home/$USERNAME/.emacs.d && \
+    chown -R $USERNAME:$USERNAME /workspace /home/$USERNAME
+
+# Install Claude Code
+RUN npm install -g @anthropic-ai/claude-code
+
+# Switch to non-root user
+USER $USERNAME
+WORKDIR /home/$USERNAME
+
+# Set up Emacs with Org-mode
+RUN mkdir -p ~/.emacs.d/elisp
+COPY claude-code.el /home/$USERNAME/.emacs.d/elisp/
+RUN echo '(add-to-list '\''load-path "~/.emacs.d/elisp")' >> ~/.emacs.d/init.el && \
+    echo '(require '\''claude-code)' >> ~/.emacs.d/init.el && \
+    echo '(org-babel-do-load-languages '\''org-babel-load-languages '\''((emacs-lisp . t) (shell . t) (python . t)))' >> ~/.emacs.d/init.el
+
+# Set default command
+CMD ["emacs", "-nw"]
+#+end_src

@@ -1,0 +1,118 @@
+#+TITLE: Exercise: Claude Code Best Practices
+#+AUTHOR: daidaitaotao
+#+DATE: 2025-04-22
+
+* Claude Code Best Practices Exercise
+:PROPERTIES:
+:CUSTOM_ID: best-practices-exercise
+:END:
+
+This exercise will help you apply the best practices outlined in Anthropic's [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices]] article.
+
+** Objectives
+:PROPERTIES:
+:CUSTOM_ID: objectives
+:END:
+
+- Apply effective prompt engineering techniques
+- Implement security best practices
+- Optimize performance with batching and chunking
+- Create reusable templates for common tasks
+
+** Part 1: Effective Prompting
+:PROPERTIES:
+:CUSTOM_ID: effective-prompting
+:END:
+
+*** Task 1: Rewrite the following vague prompts to be more specific and effective
+
+Original prompts:
+1. "Fix this code"
+2. "Make this faster"
+3. "Document this function"
+4. "Refactor this"
+
+*** Task 2: Create structured prompts
+
+Design prompts that request output in a specific format for:
+1. Code review feedback
+2. Security analysis
+3. Performance optimization recommendations
+4. Documentation generation
+
+** Part 2: Security Implementation
+:PROPERTIES:
+:CUSTOM_ID: security-implementation
+:END:
+
+*** Task 1: API Key Management
+
+Write a Python script that securely manages API keys for Claude Code by:
+1. Using environment variables
+2. Providing clear error messages when keys aren't available
+3. Supporting both direct API and AWS Bedrock authentication
+4. Never logging or displaying the actual key values
+
+*** Task 2: Isolation Strategy
+
+Extend the Docker configuration from Day 1 to:
+1. Add additional security measures
+2. Limit network access
+3. Mount only the necessary volumes
+4. Implement proper user permissions
+
+** Part 3: Performance Optimization
+:PROPERTIES:
+:CUSTOM_ID: performance-optimization
+:END:
+
+*** Task 1: Create a batching script
+
+Write a shell script that:
+1. Takes a collection of Claude Code tasks from a configuration file
+2. Executes them in sequence
+3. Collects and formats the results
+4. Handles errors gracefully
+
+*** Task 2: Implement chunking for large codebases
+
+Develop a Python script that:
+1. Analyzes a large codebase directory structure
+2. Divides it into logical components
+3. Creates focused Claude Code prompts for each component
+4. Combines the results into a comprehensive report
+
+** Part 4: Practical Application
+:PROPERTIES:
+:CUSTOM_ID: practical-application
+:END:
+
+*** Task: End-to-end optimization of a sample project
+
+For the provided sample project:
+1. Use Claude Code to generate a high-level architecture overview
+2. Identify security and performance concerns
+3. Create targeted prompts to address each concern
+4. Document your approach and findings
+5. Create a PR with your improvements
+
+** Deliverables
+:PROPERTIES:
+:CUSTOM_ID: deliverables
+:END:
+
+1. A collection of effective prompts based on Part 1
+2. Python scripts for secure API management from Part 2
+3. Performance optimization scripts from Part 3
+4. Documentation and code improvements for the sample project from Part 4
+5. A brief report on lessons learned and best practices applied
+
+** Resources
+:PROPERTIES:
+:CUSTOM_ID: resources
+:END:
+
+- [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices Article]]
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview][Claude Code Documentation]]
+- Sample project files in ~/docs/courses/examples/day2/sample_project/~
+- Docker configuration in ~/docs/courses/examples/day1/~

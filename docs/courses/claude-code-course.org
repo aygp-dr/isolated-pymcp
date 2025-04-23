@@ -1,0 +1,737 @@
+#+TITLE: Comprehensive Two-Day Claude Code Course
+#+AUTHOR: daidaitaotao
+#+DATE: 2025-04-22
+#+OPTIONS: toc:3 num:t
+#+PROPERTY: header-args :eval never-export
+
+* Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:END:
+
+This course provides a comprehensive introduction to Claude Code, covering everything from basic setup to advanced usage patterns. The course is designed to be completed in two days, but sections can be taken independently based on your needs and interests.
+
+** Purpose and Scope
+:PROPERTIES:
+:CUSTOM_ID: purpose-and-scope
+:END:
+
+- Learn how to effectively use Claude Code for software development
+- Understand different deployment options (Anthropic API, AWS Bedrock)
+- Master code review, PR, and summarization workflows
+- Create and use custom Claude commands
+- Integrate with Model Context Protocol (MCP)
+- Apply best practices from Anthropic's engineering team
+
+** Prerequisites
+:PROPERTIES:
+:CUSTOM_ID: prerequisites
+:END:
+
+- Basic understanding of Python programming
+- Familiarity with Git and GitHub
+- Access to Anthropic API key or AWS Bedrock
+- Linux, macOS, or Windows with WSL environment
+
+* Day 1: Getting Started with Claude Code
+:PROPERTIES:
+:CUSTOM_ID: day-1
+:END:
+
+** Setting Up Claude with Anthropic API
+:PROPERTIES:
+:CUSTOM_ID: anthropic-api-setup
+:END:
+
+*** Installation and Configuration
+:PROPERTIES:
+:CUSTOM_ID: installation-and-configuration
+:END:
+
+To get started with Claude Code, you'll need to install the CLI tool and configure it:
+
+1. Install Claude Code:
+   #+begin_src shell
+   # Install using npm
+   npm install -g @anthropic-ai/claude-code
+   
+   # Verify installation
+   claude --version
+   #+end_src
+
+2. Configure with your Anthropic API key:
+   #+begin_src shell
+   # Set API key (replace with your actual key)
+   claude config set api_key sk-ant-xxxx
+   
+   # Or use environment variable
+   export ANTHROPIC_API_KEY=sk-ant-xxxx
+   #+end_src
+
+3. Configure GitHub authentication:
+   #+begin_src shell
+   # Authenticate with GitHub CLI
+   gh auth login
+   #+end_src
+   
+   When prompted:
+   - Select GitHub.com
+   - Choose HTTPS protocol
+   - Select Yes for authenticating Git with GitHub credentials
+   - Choose "Paste an authentication token"
+   - Generate a token at https://github.com/settings/tokens/new with these scopes:
+     - repo
+     - workflow
+     - admin:org
+     - gist
+     - user
+     - project
+     - admin:gpg_key
+   - Paste your token when prompted
+
+*** API Key Management
+:PROPERTIES:
+:CUSTOM_ID: api-key-management
+:END:
+
+Proper API key management is crucial for security:
+
+1. Use environment variables when possible:
+   #+begin_src shell
+   # Set temporarily
+   export ANTHROPIC_API_KEY=sk-ant-xxxx
+   
+   # Add to your shell profile for persistence
+   echo 'export ANTHROPIC_API_KEY=sk-ant-xxxx' >> ~/.bashrc
+   source ~/.bashrc
+   #+end_src
+
+2. Avoid hardcoding API keys in scripts:
+   #+begin_src python
+   # Good practice
+   import os
+   api_key = os.environ.get("ANTHROPIC_API_KEY")
+   if not api_key:
+       raise ValueError("ANTHROPIC_API_KEY not set")
+   #+end_src
+
+3. Use a credential manager or secret vault for team environments
+
+4. Rotate API keys periodically for better security
+
+*** Basic Usage Patterns
+:PROPERTIES:
+:CUSTOM_ID: basic-usage-patterns
+:END:
+
+Get familiar with these common Claude Code usage patterns:
+
+1. Basic code analysis:
+   #+begin_src shell
+   # Analyze a file
+   claude analyze app.py
+   
+   # Analyze a specific function
+   claude analyze app.py:main_function
+   
+   # Summarize an entire codebase as a diagram
+   claude "Summarize this codebase as a Mermaid diagram"
+   #+end_src
+
+2. Generating code:
+   #+begin_src shell
+   # Generate a function
+   claude "Write a function that converts celsius to fahrenheit"
+   
+   # Create a new file
+   claude "Create a basic Express.js server with two routes"
+   #+end_src
+
+3. Using slash commands:
+   #+begin_src shell
+   # Get help
+   claude /help
+   
+   # Explain a concept
+   claude /explain "What are Python decorators?"
+   
+   # Improve code quality
+   claude /refactor app.py
+   #+end_src
+
+4. Troubleshooting common issues:
+   - If you see "Could not download model-context-protocol", check your network connection and try again
+   - For authentication issues, verify your API key is correctly set
+   - If Claude Code seems unresponsive, check your terminal's proxy settings
+
+*** Exercise: Setting Up Your First Project
+:PROPERTIES:
+:CUSTOM_ID: exercise-first-project
+:END:
+
+In this hands-on exercise, you'll:
+1. Install and configure Claude Code with your API key
+2. Set up GitHub authentication
+3. Clone a sample repository
+4. Run basic Claude Code commands to analyze the codebase
+5. Create a simple utility function with Claude's help
+
+** Claude on AWS Bedrock
+:PROPERTIES:
+:CUSTOM_ID: bedrock-setup
+:END:
+
+*** AWS Setup and IAM Configuration
+:PROPERTIES:
+:CUSTOM_ID: aws-setup
+:END:
+
+To run Claude Code with AWS Bedrock, you'll need to configure the appropriate IAM permissions:
+
+1. Add the ~AmazonBedrockFullAccess~ policy to your IAM user or role
+   - Navigate to: https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-2#/policies/details/arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FAmazonBedrockFullAccess
+   - Attach this policy to your IAM user/role
+
+2. Configure your AWS credentials locally:
+   #+begin_src shell
+   aws configure
+   # Enter your AWS Access Key ID
+   # Enter your AWS Secret Access Key
+   # Set default region (e.g., us-east-1)
+   # Set default output format (e.g., json)
+   #+end_src
+
+3. Set the environment variable to use Bedrock:
+   #+begin_src shell
+   export CLAUDE_CODE_USE_BEDROCK=1
+   #+end_src
+
+*** Bedrock Model Access
+:PROPERTIES:
+:CUSTOM_ID: bedrock-model-access
+:END:
+
+Before using Claude via Bedrock, you need to request access to the Claude models:
+
+1. Navigate to the Model Access page in Bedrock: 
+   - https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
+
+2. Request access to the Anthropic Claude models:
+   - Select Claude 3 Opus, Claude 3 Sonnet, and Claude 3 Haiku
+   - Click "Request model access"
+   - Wait for approval (usually instant for most accounts)
+
+3. Verify access by testing with the AWS CLI:
+   #+begin_src shell
+   aws bedrock list-foundation-models --region us-east-1 | grep -i claude
+   #+end_src
+
+*** Claude Code Configuration for Bedrock
+:PROPERTIES:
+:CUSTOM_ID: bedrock-config
+:END:
+
+Once you have access to the models, configure Claude Code to use Bedrock:
+
+#+begin_src shell
+# Set up environment for Bedrock use
+export CLAUDE_CODE_USE_BEDROCK=1
+
+# Or for permanent configuration:
+echo 'export CLAUDE_CODE_USE_BEDROCK=1' >> ~/.bashrc
+source ~/.bashrc
+
+# Test the configuration
+claude --version
+#+end_src
+
+You can also specify the model to use:
+
+#+begin_src shell
+claude --bedrock-model anthropic.claude-3-sonnet-20240229-v1:0
+#+end_src
+
+Refer to the official documentation for more details: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#use-with-third-party-apis
+
+*** Cost Management and Optimization
+:PROPERTIES:
+:CUSTOM_ID: cost-management
+:END:
+
+When using Bedrock, be aware of the cost implications:
+
+1. Monitor usage through AWS Cost Explorer
+2. Set up budget alerts to track Bedrock expenses
+3. Use Claude 3 Haiku for less complex tasks to optimize costs
+4. Leverage caching for repetitive operations
+
+*** Exercise: Deploy Claude on Bedrock
+:PROPERTIES:
+:CUSTOM_ID: exercise-bedrock-deployment
+:END:
+
+In this exercise, you'll:
+1. Configure your AWS credentials
+2. Set up the required IAM permissions
+3. Request and verify model access
+4. Configure Claude Code to use Bedrock
+5. Test the setup with a simple code analysis task
+
+** Code Review and PR Workflows
+:PROPERTIES:
+:CUSTOM_ID: code-review-workflows
+:END:
+
+*** Code Review Best Practices
+:PROPERTIES:
+:CUSTOM_ID: code-review-best-practices
+:END:
+
+*** PR Creation and Management
+:PROPERTIES:
+:CUSTOM_ID: pr-management
+:END:
+
+*** Code Summarization Techniques
+:PROPERTIES:
+:CUSTOM_ID: code-summarization
+:END:
+
+*** Exercise: Review and Summarize a PR
+:PROPERTIES:
+:CUSTOM_ID: exercise-pr-review
+:END:
+
+* Day 2: Advanced Claude Code Usage
+:PROPERTIES:
+:CUSTOM_ID: day-2
+:END:
+
+** Custom Claude Commands
+:PROPERTIES:
+:CUSTOM_ID: custom-commands
+:END:
+
+*** Command Structure and Syntax
+:PROPERTIES:
+:CUSTOM_ID: command-structure
+:END:
+
+*** Creating Your First Command
+:PROPERTIES:
+:CUSTOM_ID: creating-commands
+:END:
+
+*** Command Distribution and Versioning
+:PROPERTIES:
+:CUSTOM_ID: command-distribution
+:END:
+
+*** Exercise: Build a Custom Command
+:PROPERTIES:
+:CUSTOM_ID: exercise-custom-command
+:END:
+
+** Model Context Protocol (MCP) Integration
+:PROPERTIES:
+:CUSTOM_ID: mcp-integration
+:END:
+
+*** Understanding MCP Architecture
+:PROPERTIES:
+:CUSTOM_ID: mcp-architecture
+:END:
+
+*** Setting Up MCP Servers
+:PROPERTIES:
+:CUSTOM_ID: setting-up-mcp
+:END:
+
+*** Building MCP-Aware Applications
+:PROPERTIES:
+:CUSTOM_ID: mcp-applications
+:END:
+
+*** Exercise: Implement an MCP Server
+:PROPERTIES:
+:CUSTOM_ID: exercise-mcp-server
+:END:
+
+** Best Practices from Anthropic
+:PROPERTIES:
+:CUSTOM_ID: best-practices
+:END:
+
+As outlined in [[https://www.anthropic.com/engineering/claude-code-best-practices][Anthropic's Claude Code Best Practices]] article, here are key strategies for effective usage:
+
+*** Prompt Engineering for Claude Code
+:PROPERTIES:
+:CUSTOM_ID: prompt-engineering
+:END:
+
+Effective prompting can significantly improve Claude Code's output quality:
+
+1. *Be Specific and Clear*:
+   #+begin_src shell
+   # Less effective:
+   claude "Fix the bugs"
+   
+   # More effective:
+   claude "Find and fix bugs in the authentication system, focusing on potential
+   SQL injection vulnerabilities and improper error handling"
+   #+end_src
+
+2. *Include Context*:
+   #+begin_src shell
+   # Less effective:
+   claude "Write a function to parse dates"
+   
+   # More effective:
+   claude "Write a function to parse dates in ISO 8601 format (YYYY-MM-DD) and validate them.
+   Handle edge cases like leap years and return a proper Date object if valid, 
+   or throw a descriptive error if invalid"
+   #+end_src
+
+3. *Use Structured Formats*:
+   #+begin_src shell
+   claude "Review this code and provide feedback in the following format:
+   1. Security issues (if any)
+   2. Performance bottlenecks (if any)
+   3. Maintainability concerns
+   4. Suggested improvements with code examples"
+   #+end_src
+
+*** Security Considerations
+:PROPERTIES:
+:CUSTOM_ID: security-considerations
+:END:
+
+Best practices for secure usage of Claude Code:
+
+1. *API Key Management*:
+   - Use environment variables instead of hardcoding keys
+   - Rotate keys periodically
+   - Use different keys for development and production environments
+
+2. *Code Review*:
+   - Always review AI-generated code before executing or committing
+   - Pay extra attention to security-sensitive areas like authentication and data validation
+   - Use Claude Code to conduct security reviews of existing code
+
+3. *Isolation Strategies*:
+   - Consider using Docker containers for isolation (see the Docker section)
+   - Limit network access where appropriate
+   - Set up dedicated environments for Claude Code interactions
+
+4. *Data Privacy*:
+   - Be cautious about what code you share with Claude
+   - Don't include sensitive credentials or personal data in prompts
+   - Consider using the AWS Bedrock integration for enhanced data governance
+
+*** Performance Optimization
+:PROPERTIES:
+:CUSTOM_ID: performance-optimization
+:END:
+
+Strategies to optimize Claude Code's performance and your workflow:
+
+1. *Batching Related Tasks*:
+   #+begin_src shell
+   # Create a script file with multiple sequential tasks
+   cat > batch-tasks.sh << 'EOF'
+   claude "Review and optimize the authentication system"
+   claude "Create unit tests for the optimized code"
+   claude "Document the changes and create a PR description"
+   EOF
+   
+   # Run the batched tasks
+   bash batch-tasks.sh > results.md
+   #+end_src
+
+2. *Chunking Large Codebases*:
+   - For large projects, analyze components separately
+   - Use Claude to create a high-level overview first, then dive into specifics
+   - Combine insights from multiple focused analyses
+
+3. *Effective Iteration*:
+   - Start with broad requests, then refine based on initial output
+   - Use previous outputs as context for follow-up requests
+   - Build on partial solutions rather than starting over
+
+4. *Caching and History Management*:
+   - Save useful Claude Code outputs for reference
+   - Create templates for common tasks
+   - Use version control to track AI-assisted changes
+
+*** Exercise: Optimize Claude Code Usage
+:PROPERTIES:
+:CUSTOM_ID: exercise-optimization
+:END:
+
+In this hands-on exercise, you'll:
+1. Create a script to batch multiple Claude Code tasks
+2. Implement best practices for prompt engineering
+3. Optimize a sample codebase using Claude Code
+4. Document your approach and findings
+
+Refer to the [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices]] article for additional guidance.
+
+** Isolated Development with Docker
+:PROPERTIES:
+:CUSTOM_ID: isolated-development
+:END:
+
+For a clean, isolated development environment with Claude Code, you can use Docker:
+
+*** Claude Code Docker Setup
+:PROPERTIES:
+:CUSTOM_ID: docker-setup
+:END:
+
+1. Create a ~Dockerfile~ for your isolated environment based on the official Claude Code dev container:
+
+#+begin_src dockerfile
+FROM node:20
+
+ARG TZ
+ENV TZ="$TZ"
+
+# Install basic development tools and iptables/ipset
+RUN apt update && apt install -y less \
+  git \
+  procps \
+  sudo \
+  fzf \
+  zsh \
+  man-db \
+  unzip \
+  gnupg2 \
+  gh \
+  iptables \
+  ipset \
+  iproute2 \
+  dnsutils \
+  aggregate \
+  jq
+
+# Ensure default node user has access to /usr/local/share
+RUN mkdir -p /usr/local/share/npm-global && \
+  chown -R node:node /usr/local/share
+
+ARG USERNAME=node
+
+# Persist bash history.
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  && mkdir /commandhistory \
+  && touch /commandhistory/.bash_history \
+  && chown -R $USERNAME /commandhistory
+
+# Set `DEVCONTAINER` environment variable to help with orientation
+ENV DEVCONTAINER=true
+
+# Create workspace and config directories and set permissions
+RUN mkdir -p /workspace /home/node/.claude && \
+  chown -R node:node /workspace /home/node/.claude
+
+WORKDIR /workspace
+
+RUN ARCH=$(dpkg --print-architecture) && \
+  wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
+  sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
+  rm "git-delta_0.18.2_${ARCH}.deb"
+
+# Set up non-root user
+USER node
+
+# Install global packages
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+
+# Set the default shell to bash rather than sh
+ENV SHELL /bin/zsh
+
+# Default powerline10k theme
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.2.0/zsh-in-docker.sh)" -- \
+  -p git \
+  -p fzf \
+  -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+  -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+  -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  -x
+
+# Install Claude
+RUN npm install -g @anthropic-ai/claude-code
+
+# Copy and set up firewall script
+COPY init-firewall.sh /usr/local/bin/
+USER root
+RUN chmod +x /usr/local/bin/init-firewall.sh && \
+  echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+  chmod 0440 /etc/sudoers.d/node-firewall
+USER node
+#+end_src
+
+2. Create a ~docker-compose.yml~ file to define your services:
+
+#+begin_src yaml
+version: '3'
+services:
+  claude-code:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+      - claude-config:/home/node/.claude
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    command: /bin/zsh
+    
+volumes:
+  claude-config:
+#+end_src
+
+3. Build and start your container:
+
+#+begin_src shell
+# Build the container
+docker-compose build
+
+# Start the container
+docker-compose up -d
+
+# Connect to the container
+docker-compose exec claude-code zsh
+#+end_src
+
+*** Benefits of Isolated Environment
+:PROPERTIES:
+:CUSTOM_ID: isolation-benefits
+:END:
+
+Using Docker for Claude Code development offers several advantages:
+
+1. *Clean Environment*: Ensures all dependencies are correctly installed without conflicts
+2. *Reproducibility*: Anyone can spin up the exact same environment
+3. *Security*: Better isolation between Claude Code and your host system
+4. *Portability*: Works across different operating systems
+5. *Credential Management*: Environment variables are contained within the Docker environment
+
+For more details, see the official [[https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile][Claude Code Dev Container Dockerfile]].
+
+* Resources and References
+:PROPERTIES:
+:CUSTOM_ID: resources
+:END:
+
+** Documentation Links
+:PROPERTIES:
+:CUSTOM_ID: documentation
+:END:
+
+Essential documentation for Claude Code:
+
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview][Claude Code Overview]] - Official documentation on setup, configuration, and usage
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/tutorials][Claude Code Tutorials]] - Practical examples and patterns for effectively using Claude Code
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#use-with-third-party-apis][Claude Code with Third-Party APIs]] - Guide for using Claude Code with Bedrock and other APIs
+- [[https://docs.anthropic.com/en/docs/agents-and-tools/mcp][Model Context Protocol (MCP)]] - Documentation on the protocol that powers Claude Code
+- [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices]] - Official blog post covering tips and tricks for effective usage
+
+AWS Bedrock specific resources:
+- [[https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-2#/policies/details/arn%3Aaws%3Aiam%3A%3Aaws%3Apolicy%2FAmazonBedrockFullAccess][AmazonBedrockFullAccess Policy]] - IAM policy for Bedrock access
+- [[https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess][Bedrock Model Access Console]] - Request access to Claude models
+
+GitHub authentication:
+- [[https://github.com/settings/tokens/new][GitHub Personal Access Token Creation]] - Generate tokens for Claude Code
+
+** Sample Code Repository
+:PROPERTIES:
+:CUSTOM_ID: sample-code
+:END:
+
+Practice with these sample repositories:
+
+- [[https://github.com/anthropics/claude-code][Claude Code Repository]] - Official repository with examples and Dockerfiles
+- [[https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile][Claude Code Dev Container]] - Dockerfile for isolated development environments
+
+** Troubleshooting Guide
+:PROPERTIES:
+:CUSTOM_ID: troubleshooting
+:END:
+
+Common issues and solutions:
+
+*** Network and Download Issues
+- Issue: "Could not download model-context-protocol"
+  - Solution: Check your network connection and proxy settings
+  - Try using a different network or disabling VPN
+  - Verify that your firewall allows connections to Anthropic servers
+
+*** Authentication Problems
+- Issue: API key errors
+  - Solution: Verify your key is correctly formatted and active
+  - Check environment variables are properly set
+  - Try regenerating your API key from the Anthropic console
+
+*** GitHub Integration
+- Issue: Unable to authenticate with GitHub
+  - Solution: Verify your personal access token has the required scopes
+  - Ensure GitHub CLI is properly installed
+  - Try running `gh auth login` again with a new token
+
+*** Bedrock Configuration
+- Issue: "Invalid AWS credentials"
+  - Solution: Run `aws configure` to set up your credentials
+  - Verify your IAM user has the AmazonBedrockFullAccess policy
+  - Check that you've requested access to Claude models in Bedrock
+
+** Community Resources
+:PROPERTIES:
+:CUSTOM_ID: community
+:END:
+
+Connect with other Claude Code users:
+
+- [[https://discord.gg/anthropic][Anthropic Discord]] - Official Discord server with Claude Code channels
+- [[https://github.com/anthropics/claude-code/discussions][GitHub Discussions]] - Discuss features and share tips with the community
+- [[https://news.ycombinator.com/item?id=43691230][Hacker News: Model Context Protocol Discussion]] - Community perspectives on MCP
+
+* Exercises and Solutions
+:PROPERTIES:
+:CUSTOM_ID: exercises
+:END:
+
+** Day 1 Exercises
+:PROPERTIES:
+:CUSTOM_ID: day-1-exercises
+:END:
+
+** Day 2 Exercises
+:PROPERTIES:
+:CUSTOM_ID: day-2-exercises
+:END:
+
+** Solutions
+:PROPERTIES:
+:CUSTOM_ID: solutions
+:END:
+
+* Appendix
+:PROPERTIES:
+:CUSTOM_ID: appendix
+:END:
+
+** Glossary
+:PROPERTIES:
+:CUSTOM_ID: glossary
+:END:
+
+** Configuration Templates
+:PROPERTIES:
+:CUSTOM_ID: config-templates
+:END:
+
+** Further Reading
+:PROPERTIES:
+:CUSTOM_ID: further-reading
+:END:
