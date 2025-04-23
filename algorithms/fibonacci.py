@@ -22,7 +22,12 @@ def fib_recursive(n: int) -> int:
 
     Returns:
         The nth Fibonacci number
+        
+    Raises:
+        ValueError: If n is negative
     """
+    if n < 0:
+        raise ValueError("Input must be non-negative")
     if n <= 1:
         return n
     return fib_recursive(n - 1) + fib_recursive(n - 2)
@@ -41,7 +46,12 @@ def fib_memoized(n: int) -> int:
 
     Returns:
         The nth Fibonacci number
+        
+    Raises:
+        ValueError: If n is negative
     """
+    if n < 0:
+        raise ValueError("Input must be non-negative")
     if n <= 1:
         return n
     return fib_memoized(n - 1) + fib_memoized(n - 2)
@@ -59,7 +69,12 @@ def fib_iterative(n: int) -> int:
 
     Returns:
         The nth Fibonacci number
+        
+    Raises:
+        ValueError: If n is negative
     """
+    if n < 0:
+        raise ValueError("Input must be non-negative")
     if n <= 1:
         return n
 
@@ -80,7 +95,13 @@ def fib_generator(n: int) -> Generator[int, None, None]:
 
     Yields:
         Fibonacci numbers in sequence
+        
+    Raises:
+        ValueError: If n is negative
     """
+    if n < 0:
+        raise ValueError("Input must be non-negative")
+        
     a, b = 0, 1
     yield a
 
