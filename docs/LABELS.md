@@ -30,6 +30,17 @@ Component labels identify which major architectural component of the system is a
 | `component: education` | Tutorials, courses, and learning materials |
 | `component: container` | Docker/Podman configuration and infrastructure |
 
+### Cross-Cutting Concerns
+
+These labels identify issues that span multiple components or represent development aspects rather than specific architectural components:
+
+| Label | Description |
+|-------|-------------|
+| `testing` | Test coverage, test frameworks, and test methodologies |
+| `infrastructure` | CI/CD pipelines, build systems, and development infrastructure |
+| `performance` | Performance optimization and benchmarking |
+| `refactoring` | Code restructuring without changing functionality |
+
 ### Priority Labels
 
 Priority labels help with issue triaging and scheduling:
@@ -54,9 +65,10 @@ Expertise labels indicate the level of knowledge required to work on an issue:
 
 1. **Every issue should have at least one primary category label**
 2. **Component labels should be used whenever possible** to indicate which part of the system is affected
-3. **Don't use redundant labels** (e.g., don't use both `documentation` and `area: docs`)
-4. **Priority labels are optional** but recommended for bugs and enhancements
-5. **Expertise labels help new contributors** find appropriate issues to work on
+3. **Cross-cutting concern labels** can be combined with component labels to add context
+4. **Don't use redundant labels** (e.g., don't use both `documentation` and `area: docs`)
+5. **Priority labels are optional** but recommended for bugs and enhancements
+6. **Expertise labels help new contributors** find appropriate issues to work on
 
 ## Example Label Combinations
 
@@ -65,3 +77,6 @@ Expertise labels indicate the level of knowledge required to work on an issue:
 - **New Algorithm**: `enhancement`, `component: algorithms`, `expertise: intermediate`
 - **Security Fix**: `bug`, `security`, `priority: high`
 - **Tutorial Update**: `documentation`, `component: education`, `priority: low`
+- **Performance Testing**: `enhancement`, `component: algorithms`, `testing`, `performance`
+- **CI Pipeline Fix**: `bug`, `infrastructure`, `priority: medium`
+- **Refactoring MCP Code**: `enhancement`, `component: mcp`, `refactoring`
