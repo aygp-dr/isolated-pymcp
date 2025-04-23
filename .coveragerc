@@ -1,0 +1,23 @@
+[run]
+source = algorithms
+omit = 
+    */tests/*
+    */node_modules/*
+    */__pycache__/*
+    */.venv/*
+    */emacs/*
+    */tutorials/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError
+    
+[html]
+directory = coverage_html_report
+title = isolated-pymcp Code Coverage Report

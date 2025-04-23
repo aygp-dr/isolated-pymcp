@@ -1,0 +1,53 @@
+name: Python Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        uv venv .venv
+        . .venv/bin/activate
+        uv pip install pytest pytest-cov
+
+    - name: Generate README.md
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y emacs-nox
+        make README.md
+    
+    - name: Run tests with coverage
+      run: |
+        . .venv/bin/activate
+        python -m pytest tests/ --cov=algorithms --cov-report=xml --cov-report=term
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+        verbose: true
+    
+    - name: Store coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.xml

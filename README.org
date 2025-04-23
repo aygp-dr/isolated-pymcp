@@ -3,6 +3,8 @@
 #+EMAIL: apace@defrecord.com
 #+DATE: 2025-04-22
 
+[[https://github.com/aygp-dr/isolated-pymcp/actions/workflows/python-tests.yml/badge.svg][Tests]] [[https://codecov.io/gh/aygp-dr/isolated-pymcp/branch/main/graph/badge.svg][Coverage]]
+
 A secure, isolated environment for exploring Python development with Model Context Protocol (MCP) and Language Server Protocol (LSP).
 
 ** Overview
