@@ -202,7 +202,7 @@ check-secrets: ## Check for required secrets and set up .env file
 	@if [ ! -f ".env" ]; then \
 		echo "No .env file found. Checking for GitHub auth..."; \
 		if gh auth status &>/dev/null; then \
-			./get_secrets.sh; \
+			./scripts/get-secrets.sh; \
 		else \
 			echo "Error: No .env file and GitHub CLI not authenticated."; \
 			echo "Either:"; \
@@ -294,7 +294,7 @@ test-all-mcp-servers: ## Test all MCP servers with the tools list request
 
 run-mcp-python: ## Run Python client for MCP server
 	@echo "Running Python client for MCP server..."
-	@python3 mcp_run_python.py
+	@python3 scripts/mcp_run_python.py
 
 run-python-tool: ## Run Python code with the correct tool_input format
 	@echo "Running Python code with correct tool_input format..."
@@ -304,7 +304,7 @@ run-python-tool: ## Run Python code with the correct tool_input format
 
 run-factorial-script: ## Run the factorial example using inline_script_metadata
 	@echo "Running factorial script with metadata handler..."
-	@python3 run_factorial.py
+	@python3 scripts/run_factorial.py
 	
 run-working-payload: ## Run a working payload with MCP server
 	@echo "Running working payload..."
