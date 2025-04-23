@@ -44,7 +44,7 @@ The repository uses a structured labeling system:
 1. Every issue should have at least one primary category label
 2. Component labels should be used whenever possible
 3. Cross-cutting concern labels can be combined with component labels to add context
-4. Don't use redundant labels
+4. Don't use redundant labels (e.g., use `component: mcp` instead of `mcp`)
 5. Priority labels are recommended for bugs and enhancements
 6. Expertise labels help new contributors find appropriate issues
 

@@ -32,7 +32,7 @@ Component labels identify which major architectural component of the system is a
 
 ### Cross-Cutting Concerns
 
-These labels identify issues that span multiple components or represent development aspects rather than specific architectural components:
+These labels identify issues that span multiple components or represent development aspects rather than specific architectural components. Note that these have replaced the deprecated `area:` prefixed labels (e.g., `testing` instead of `area: testing`):
 
 | Label | Description |
 |-------|-------------|
@@ -66,7 +66,7 @@ Expertise labels indicate the level of knowledge required to work on an issue:
 1. **Every issue should have at least one primary category label**
 2. **Component labels should be used whenever possible** to indicate which part of the system is affected
 3. **Cross-cutting concern labels** can be combined with component labels to add context
-4. **Don't use redundant labels** (e.g., don't use both `documentation` and `area: docs`)
+4. **Don't use redundant labels** (e.g., don't use `documentation` and `area: docs`, or `mcp` and `component: mcp`)
 5. **Priority labels are optional** but recommended for bugs and enhancements
 6. **Expertise labels help new contributors** find appropriate issues to work on
 
