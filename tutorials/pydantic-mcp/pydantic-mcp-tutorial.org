@@ -13,6 +13,17 @@
 This tutorial provides a comprehensive introduction to Pydantic AI and the Model Context Protocol (MCP) Run Python server.
 It is designed as a four-hour workshop to help you understand how to leverage these technologies for AI-enhanced Python applications.
 
+** Focus on Practical Applications
+
+This tutorial focuses on *POSITIVE CASES* and *PRACTICAL APPLICATIONS* of the MCP Run Python server.
+It demonstrates the proper use of the isolated Python environment for everyday development workflows,
+showing you how to integrate it into your applications and leverage its capabilities safely.
+
+For detailed security testing and validation of the sandbox boundaries, please refer to the companion
+tutorial: [[../sandbox-isolation/README.org][MCP Sandbox Isolation: Security Boundaries in Practice]].
+
+See also: [[../../docs/TUTORIAL_COMPARISON.md][Comparison between pydantic-mcp and sandbox-isolation tutorials]]
+
 ** Prerequisites
 
 - Python 3.10+ installed

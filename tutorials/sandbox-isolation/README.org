@@ -1,0 +1,1126 @@
+#+TITLE: MCP Sandbox Isolation: Security Boundaries in Practice
+#+AUTHOR: Claude
+#+DATE: 2025-04-27
+#+PROPERTY: header-args:python :results output :exports both :mkdirp yes
+#+PROPERTY: header-args:shell :results output :exports both :mkdirp yes
+#+PROPERTY: header-args :tangle yes
+
+* Introduction
+
+This tutorial demonstrates the security boundaries of the Pydantic MCP Run Python server
+by comparing the behavior of Python code when run directly on the host versus through the MCP server.
+
+The same code will behave differently depending on the execution context, highlighting
+how the sandbox isolation protects your system from potentially dangerous operations.
+
+** Focus on Security Testing
+
+This tutorial focuses on *SECURITY TESTING* and *BOUNDARY VALIDATION* of the MCP Run Python server.
+It systematically explores the security boundaries of the sandbox and demonstrates how isolation
+mechanisms prevent potentially dangerous operations from affecting the host system.
+
+For practical applications and everyday development workflows using the MCP sandbox, please refer to the
+companion tutorial: [[../pydantic-mcp/pydantic-mcp-tutorial.org][Getting Started with Pydantic AI and MCP Run Python]].
+
+See also: [[../../docs/TUTORIAL_COMPARISON.md][Comparison between pydantic-mcp and sandbox-isolation tutorials]]
+
+* Setup
+
+First, let's create a directory for our isolation tests:
+
+#+BEGIN_SRC shell :tangle setup.sh
+mkdir -p results
+chmod +x *.py
+#+END_SRC
+
+* File System Access Test
+
+This test attempts to access sensitive system files and directories outside the sandbox.
+
+#+BEGIN_SRC python :tangle file_access_test.py
+#!/usr/bin/env python3
+"""
+Test file system access inside vs. outside the MCP sandbox
+"""
+
+import os
+import sys
+import json
+
+# Initialize results dictionary
+results = {
+    "test_name": "file_system_access",
+    "environment": "unknown",
+    "tests": {}
+}
+
+# Determine if we're running in MCP sandbox
+try:
+    # Check for environment markers that might indicate we're in an isolated environment
+    if "PYODIDE_ROOT" in os.environ or "PYTHONPATH" in os.environ and "pyodide" in os.environ.get("PYTHONPATH", ""):
+        results["environment"] = "mcp_sandbox"
+    else:
+        results["environment"] = "direct_execution"
+except Exception:
+    pass
+
+# Test 1: Try to read /etc/passwd
+try:
+    with open('/etc/passwd', 'r') as f:
+        first_line = f.readline().strip()
+        results["tests"]["read_etc_passwd"] = {
+            "success": True,
+            "result": first_line,
+            "error": None
+        }
+except Exception as e:
+    results["tests"]["read_etc_passwd"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to list files in /home
+try:
+    home_files = os.listdir('/home')
+    results["tests"]["list_home_directory"] = {
+        "success": True,
+        "result": home_files[:5],  # First 5 items to keep output manageable
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["list_home_directory"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to get current user info
+try:
+    import pwd
+    current_user = pwd.getpwuid(os.getuid())
+    user_info = {
+        "name": current_user.pw_name,
+        "uid": current_user.pw_uid,
+        "gid": current_user.pw_gid,
+        "home": current_user.pw_dir
+    }
+    results["tests"]["get_user_info"] = {
+        "success": True,
+        "result": user_info,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["get_user_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to write to a system directory
+try:
+    with open('/tmp/sandbox_test.txt', 'w') as f:
+        f.write('This is a test')
+    results["tests"]["write_to_tmp"] = {
+        "success": True,
+        "result": "Successfully wrote to /tmp/sandbox_test.txt",
+        "error": None
+    }
+    # Clean up
+    os.remove('/tmp/sandbox_test.txt')
+except Exception as e:
+    results["tests"]["write_to_tmp"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+
+# Also save results to a file if run directly
+if __name__ == "__main__":
+    try:
+        # Attempt to save results to the expected directory
+        with open('results/file_access_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        print("\nResults saved to 'results/file_access_results.json'")
+    except Exception as e:
+        print(f"\nFailed to save results: {e}")
+#+END_SRC
+
+* Command Execution Test
+
+This test attempts to execute system commands, which should be blocked in the sandbox.
+
+#+BEGIN_SRC python :tangle command_execution_test.py
+#!/usr/bin/env python3
+"""
+Test command execution capabilities inside vs. outside the MCP sandbox
+"""
+
+import os
+import sys
+import json
+import subprocess
+
+# Initialize results dictionary
+results = {
+    "test_name": "command_execution",
+    "environment": "unknown",
+    "tests": {}
+}
+
+# Determine if we're running in MCP sandbox
+try:
+    # Check for environment markers
+    if "PYODIDE_ROOT" in os.environ or "PYTHONPATH" in os.environ and "pyodide" in os.environ.get("PYTHONPATH", ""):
+        results["environment"] = "mcp_sandbox"
+    else:
+        results["environment"] = "direct_execution"
+except Exception:
+    pass
+
+# Test 1: Try to execute a command using subprocess
+try:
+    output = subprocess.check_output(["whoami"], text=True).strip()
+    results["tests"]["subprocess_whoami"] = {
+        "success": True,
+        "result": output,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["subprocess_whoami"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to execute a command using os.system
+try:
+    exit_code = os.system("uname -a > /tmp/uname_output.txt")
+    if exit_code == 0:
+        with open("/tmp/uname_output.txt", "r") as f:
+            output = f.read().strip()
+        results["tests"]["os_system_uname"] = {
+            "success": True,
+            "result": output,
+            "error": None
+        }
+        # Clean up
+        os.remove("/tmp/uname_output.txt")
+    else:
+        results["tests"]["os_system_uname"] = {
+            "success": False,
+            "result": None,
+            "error": f"Command failed with exit code {exit_code}"
+        }
+except Exception as e:
+    results["tests"]["os_system_uname"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to execute potentially dangerous command
+try:
+    # This just lists processes, but in a real attack might do something harmful
+    output = subprocess.check_output(["ps", "aux"], text=True)
+    results["tests"]["subprocess_ps_aux"] = {
+        "success": True,
+        "result": "Output too long to display",
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["subprocess_ps_aux"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to load a command execution library
+try:
+    import pty
+    results["tests"]["import_pty"] = {
+        "success": True,
+        "result": "Successfully imported pty module",
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["import_pty"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+
+# Also save results to a file if run directly
+if __name__ == "__main__":
+    try:
+        with open('results/command_execution_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        print("\nResults saved to 'results/command_execution_results.json'")
+    except Exception as e:
+        print(f"\nFailed to save results: {e}")
+#+END_SRC
+
+* Network Access Test
+
+This test attempts to establish network connections, which should be restricted in the sandbox.
+
+#+BEGIN_SRC python :tangle network_access_test.py
+#!/usr/bin/env python3
+"""
+Test network access capabilities inside vs. outside the MCP sandbox
+"""
+
+import os
+import sys
+import json
+import socket
+
+# Initialize results dictionary
+results = {
+    "test_name": "network_access",
+    "environment": "unknown",
+    "tests": {}
+}
+
+# Determine if we're running in MCP sandbox
+try:
+    # Check for environment markers
+    if "PYODIDE_ROOT" in os.environ or "PYTHONPATH" in os.environ and "pyodide" in os.environ.get("PYTHONPATH", ""):
+        results["environment"] = "mcp_sandbox"
+    else:
+        results["environment"] = "direct_execution"
+except Exception:
+    pass
+
+# Test 1: Try to resolve a domain name
+try:
+    ip_address = socket.gethostbyname("www.example.com")
+    results["tests"]["dns_lookup"] = {
+        "success": True,
+        "result": ip_address,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["dns_lookup"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to connect to a public website on port 80
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(2)
+    result = s.connect_ex(("www.example.com", 80))
+    if result == 0:
+        results["tests"]["connect_port_80"] = {
+            "success": True,
+            "result": "Successfully connected to www.example.com:80",
+            "error": None
+        }
+    else:
+        results["tests"]["connect_port_80"] = {
+            "success": False,
+            "result": None,
+            "error": f"Connection failed with error code {result}"
+        }
+    s.close()
+except Exception as e:
+    results["tests"]["connect_port_80"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to import networking libraries
+network_modules = ["requests", "urllib.request", "http.client"]
+for module in network_modules:
+    try:
+        __import__(module)
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": True,
+            "result": f"Successfully imported {module}",
+            "error": None
+        }
+    except Exception as e:
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": False,
+            "result": None,
+            "error": str(e)
+        }
+
+# Test 4: Try to open a socket on a local port
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('127.0.0.1', 8888))
+    s.listen(1)
+    results["tests"]["open_local_socket"] = {
+        "success": True,
+        "result": "Successfully opened socket on 127.0.0.1:8888",
+        "error": None
+    }
+    s.close()
+except Exception as e:
+    results["tests"]["open_local_socket"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+
+# Also save results to a file if run directly
+if __name__ == "__main__":
+    try:
+        with open('results/network_access_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        print("\nResults saved to 'results/network_access_results.json'")
+    except Exception as e:
+        print(f"\nFailed to save results: {e}")
+#+END_SRC
+
+* System Resources Test
+
+This test checks access to system resources like process information and system modules.
+
+#+BEGIN_SRC python :tangle system_resources_test.py
+#!/usr/bin/env python3
+"""
+Test access to system resources inside vs. outside the MCP sandbox
+"""
+
+import os
+import sys
+import json
+import platform
+
+# Initialize results dictionary
+results = {
+    "test_name": "system_resources",
+    "environment": "unknown",
+    "tests": {}
+}
+
+# Determine if we're running in MCP sandbox
+try:
+    # Check for environment markers
+    if "PYODIDE_ROOT" in os.environ or "PYTHONPATH" in os.environ and "pyodide" in os.environ.get("PYTHONPATH", ""):
+        results["environment"] = "mcp_sandbox"
+    else:
+        results["environment"] = "direct_execution"
+except Exception:
+    pass
+
+# Test 1: Get system information
+try:
+    system_info = {
+        "system": platform.system(),
+        "node": platform.node(),
+        "release": platform.release(),
+        "version": platform.version(),
+        "machine": platform.machine(),
+        "processor": platform.processor()
+    }
+    results["tests"]["system_info"] = {
+        "success": True,
+        "result": system_info,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["system_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to access process information
+try:
+    import psutil
+    process_count = len(psutil.pids())
+    memory_info = dict(psutil.virtual_memory()._asdict())
+    results["tests"]["process_info"] = {
+        "success": True,
+        "result": {
+            "process_count": process_count,
+            "memory_info": {k: v for k, v in memory_info.items() if k in ["total", "available", "percent"]}
+        },
+        "error": None
+    }
+except ImportError:
+    results["tests"]["process_info"] = {
+        "success": False,
+        "result": None,
+        "error": "psutil module not available"
+    }
+except Exception as e:
+    results["tests"]["process_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to access current process environment
+try:
+    # Just get a few environment variables for demonstration
+    env_vars = {k: os.environ.get(k) for k in ["USER", "HOME", "PATH", "PYTHONPATH"]}
+    results["tests"]["environment_variables"] = {
+        "success": True,
+        "result": env_vars,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["environment_variables"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to load system-specific modules
+system_modules = ["sys", "os.path", "ctypes", "signal"]
+for module in system_modules:
+    try:
+        __import__(module)
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": True,
+            "result": f"Successfully imported {module}",
+            "error": None
+        }
+    except Exception as e:
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": False,
+            "result": None,
+            "error": str(e)
+        }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+
+# Also save results to a file if run directly
+if __name__ == "__main__":
+    try:
+        with open('results/system_resources_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        print("\nResults saved to 'results/system_resources_results.json'")
+    except Exception as e:
+        print(f"\nFailed to save results: {e}")
+#+END_SRC
+
+* Comparison Script
+
+This script compares the results from direct execution versus MCP sandbox execution.
+
+#+BEGIN_SRC python :tangle compare_results.py
+#!/usr/bin/env python3
+"""
+Compare results from direct execution vs. MCP sandbox execution
+"""
+
+import json
+import os
+import sys
+from collections import defaultdict
+
+def load_json_file(filename):
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading {filename}: {e}")
+        return None
+
+def compare_results():
+    results_dir = "results"
+    test_types = ["file_access", "command_execution", "network_access", "system_resources"]
+    
+    # Dictionary to store all results
+    comparison = defaultdict(dict)
+    
+    for test_type in test_types:
+        # Load results for direct execution
+        direct_filename = f"{results_dir}/{test_type}_results.json"
+        if os.path.exists(direct_filename):
+            direct_results = load_json_file(direct_filename)
+            if direct_results:
+                comparison[test_type]["direct"] = direct_results
+        
+        # Load results for MCP sandbox execution
+        mcp_filename = f"{results_dir}/{test_type}_results_mcp.json"
+        if os.path.exists(mcp_filename):
+            mcp_results = load_json_file(mcp_filename)
+            if mcp_results:
+                comparison[test_type]["mcp"] = mcp_results
+    
+    # Generate comparison report
+    report = []
+    report.append("# Sandbox Isolation Comparison Report")
+    report.append("\n## Summary")
+    report.append("\nThis report compares the execution of test scripts directly on the host system versus through the MCP sandbox.")
+    
+    for test_type in test_types:
+        report.append(f"\n## {test_type.replace('_', ' ').title()} Tests")
+        
+        if test_type not in comparison or not comparison[test_type]:
+            report.append("\n*No results available for this test type.*")
+            continue
+        
+        direct_results = comparison[test_type].get("direct")
+        mcp_results = comparison[test_type].get("mcp")
+        
+        if not direct_results or not mcp_results:
+            if not direct_results:
+                report.append("\n*Direct execution results not available.*")
+            if not mcp_results:
+                report.append("\n*MCP sandbox results not available.*")
+            continue
+        
+        report.append("\n| Test | Direct Execution | MCP Sandbox | Isolation Status |")
+        report.append("| ---- | ---------------- | ----------- | ---------------- |")
+        
+        # Get all unique test keys
+        all_tests = set(direct_results.get("tests", {}).keys()) | set(mcp_results.get("tests", {}).keys())
+        
+        for test_key in sorted(all_tests):
+            direct_test = direct_results.get("tests", {}).get(test_key, {})
+            mcp_test = mcp_results.get("tests", {}).get(test_key, {})
+            
+            direct_success = direct_test.get("success", False)
+            mcp_success = mcp_test.get("success", False)
+            
+            direct_status = "✅ Success" if direct_success else "❌ Failed"
+            mcp_status = "✅ Success" if mcp_success else "❌ Failed"
+            
+            # Determine isolation status
+            if direct_success and not mcp_success:
+                isolation_status = "✅ Properly isolated"
+            elif not direct_success and not mcp_success:
+                isolation_status = "➖ Both failed"
+            elif direct_success and mcp_success:
+                # Both succeeded, but might be with different results
+                if str(direct_test.get("result")) != str(mcp_test.get("result")):
+                    isolation_status = "⚠️ Partial isolation"
+                else:
+                    isolation_status = "❌ Not isolated"
+            else:
+                isolation_status = "❓ Unexpected"
+            
+            test_name = test_key.replace("_", " ").title()
+            report.append(f"| {test_name} | {direct_status} | {mcp_status} | {isolation_status} |")
+    
+    report.append("\n## Conclusion")
+    report.append("\nThe above tests demonstrate the security boundaries implemented by the MCP sandbox.")
+    report.append("Operations that succeeded in direct execution but failed in the MCP sandbox indicate proper isolation.")
+    
+    return "\n".join(report)
+
+if __name__ == "__main__":
+    report = compare_results()
+    
+    # Write the report to a Markdown file
+    try:
+        with open("results/isolation_report.md", "w") as f:
+            f.write(report)
+        print("Report generated: results/isolation_report.md")
+    except Exception as e:
+        print(f"Error writing report: {e}")
+        print(report)  # Display report in console if file writing fails
+#+END_SRC
+
+* Running the Tests
+
+** Direct Execution
+
+First, let's run these tests directly on your system:
+
+#+BEGIN_SRC shell :tangle run_direct_tests.sh
+#!/bin/bash
+# Run tests directly on the host system
+
+echo "Running isolation tests directly on the host system..."
+
+# Create results directory
+mkdir -p results
+
+# Run each test script
+echo "Running file access test..."
+python file_access_test.py
+
+echo -e "\nRunning command execution test..."
+python command_execution_test.py
+
+echo -e "\nRunning network access test..."
+python network_access_test.py
+
+echo -e "\nRunning system resources test..."
+python system_resources_test.py
+
+echo -e "\nDirect execution tests completed."
+#+END_SRC
+
+** MCP Sandbox Execution
+
+Then, we'll run the same tests through the MCP sandbox:
+
+#+BEGIN_SRC shell :tangle run_mcp_tests.sh
+#!/bin/bash
+# Run tests through the MCP sandbox using Claude CLI
+
+echo "Running isolation tests through the MCP sandbox..."
+
+# Create results directory
+mkdir -p results
+
+# Run each test through the MCP sandbox via Claude CLI
+echo "Running file access test through MCP..."
+cat <<EOF | claude -p "Run this Python code using the pydantic-run-python MCP server. Only provide the raw output without any additional commentary." > results/file_access_results_mcp.json
+import os
+import sys
+import json
+
+# Initialize results dictionary
+results = {
+    "test_name": "file_system_access",
+    "environment": "mcp_sandbox",
+    "tests": {}
+}
+
+# Test 1: Try to read /etc/passwd
+try:
+    with open('/etc/passwd', 'r') as f:
+        first_line = f.readline().strip()
+        results["tests"]["read_etc_passwd"] = {
+            "success": True,
+            "result": first_line,
+            "error": None
+        }
+except Exception as e:
+    results["tests"]["read_etc_passwd"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to list files in /home
+try:
+    home_files = os.listdir('/home')
+    results["tests"]["list_home_directory"] = {
+        "success": True,
+        "result": home_files[:5],  # First 5 items to keep output manageable
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["list_home_directory"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to get current user info
+try:
+    import pwd
+    current_user = pwd.getpwuid(os.getuid())
+    user_info = {
+        "name": current_user.pw_name,
+        "uid": current_user.pw_uid,
+        "gid": current_user.pw_gid,
+        "home": current_user.pw_dir
+    }
+    results["tests"]["get_user_info"] = {
+        "success": True,
+        "result": user_info,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["get_user_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to write to a system directory
+try:
+    with open('/tmp/sandbox_test.txt', 'w') as f:
+        f.write('This is a test')
+    results["tests"]["write_to_tmp"] = {
+        "success": True,
+        "result": "Successfully wrote to /tmp/sandbox_test.txt",
+        "error": None
+    }
+    # Clean up
+    os.remove('/tmp/sandbox_test.txt')
+except Exception as e:
+    results["tests"]["write_to_tmp"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+EOF
+
+echo "Running command execution test through MCP..."
+cat <<EOF | claude -p "Run this Python code using the pydantic-run-python MCP server. Only provide the raw output without any additional commentary." > results/command_execution_results_mcp.json
+import os
+import sys
+import json
+import subprocess
+
+# Initialize results dictionary
+results = {
+    "test_name": "command_execution",
+    "environment": "mcp_sandbox",
+    "tests": {}
+}
+
+# Test 1: Try to execute a command using subprocess
+try:
+    output = subprocess.check_output(["whoami"], text=True).strip()
+    results["tests"]["subprocess_whoami"] = {
+        "success": True,
+        "result": output,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["subprocess_whoami"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to execute a command using os.system
+try:
+    exit_code = os.system("uname -a > /tmp/uname_output.txt")
+    if exit_code == 0:
+        with open("/tmp/uname_output.txt", "r") as f:
+            output = f.read().strip()
+        results["tests"]["os_system_uname"] = {
+            "success": True,
+            "result": output,
+            "error": None
+        }
+        # Clean up
+        os.remove("/tmp/uname_output.txt")
+    else:
+        results["tests"]["os_system_uname"] = {
+            "success": False,
+            "result": None,
+            "error": f"Command failed with exit code {exit_code}"
+        }
+except Exception as e:
+    results["tests"]["os_system_uname"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to execute potentially dangerous command
+try:
+    # This just lists processes, but in a real attack might do something harmful
+    output = subprocess.check_output(["ps", "aux"], text=True)
+    results["tests"]["subprocess_ps_aux"] = {
+        "success": True,
+        "result": "Output too long to display",
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["subprocess_ps_aux"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to load a command execution library
+try:
+    import pty
+    results["tests"]["import_pty"] = {
+        "success": True,
+        "result": "Successfully imported pty module",
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["import_pty"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+EOF
+
+echo "Running network access test through MCP..."
+cat <<EOF | claude -p "Run this Python code using the pydantic-run-python MCP server. Only provide the raw output without any additional commentary." > results/network_access_results_mcp.json
+import os
+import sys
+import json
+import socket
+
+# Initialize results dictionary
+results = {
+    "test_name": "network_access",
+    "environment": "mcp_sandbox",
+    "tests": {}
+}
+
+# Test 1: Try to resolve a domain name
+try:
+    ip_address = socket.gethostbyname("www.example.com")
+    results["tests"]["dns_lookup"] = {
+        "success": True,
+        "result": ip_address,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["dns_lookup"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to connect to a public website on port 80
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(2)
+    result = s.connect_ex(("www.example.com", 80))
+    if result == 0:
+        results["tests"]["connect_port_80"] = {
+            "success": True,
+            "result": "Successfully connected to www.example.com:80",
+            "error": None
+        }
+    else:
+        results["tests"]["connect_port_80"] = {
+            "success": False,
+            "result": None,
+            "error": f"Connection failed with error code {result}"
+        }
+    s.close()
+except Exception as e:
+    results["tests"]["connect_port_80"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to import networking libraries
+network_modules = ["requests", "urllib.request", "http.client"]
+for module in network_modules:
+    try:
+        __import__(module)
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": True,
+            "result": f"Successfully imported {module}",
+            "error": None
+        }
+    except Exception as e:
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": False,
+            "result": None,
+            "error": str(e)
+        }
+
+# Test 4: Try to open a socket on a local port
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('127.0.0.1', 8888))
+    s.listen(1)
+    results["tests"]["open_local_socket"] = {
+        "success": True,
+        "result": "Successfully opened socket on 127.0.0.1:8888",
+        "error": None
+    }
+    s.close()
+except Exception as e:
+    results["tests"]["open_local_socket"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+EOF
+
+echo "Running system resources test through MCP..."
+cat <<EOF | claude -p "Run this Python code using the pydantic-run-python MCP server. Only provide the raw output without any additional commentary." > results/system_resources_results_mcp.json
+import os
+import sys
+import json
+import platform
+
+# Initialize results dictionary
+results = {
+    "test_name": "system_resources",
+    "environment": "mcp_sandbox",
+    "tests": {}
+}
+
+# Test 1: Get system information
+try:
+    system_info = {
+        "system": platform.system(),
+        "node": platform.node(),
+        "release": platform.release(),
+        "version": platform.version(),
+        "machine": platform.machine(),
+        "processor": platform.processor()
+    }
+    results["tests"]["system_info"] = {
+        "success": True,
+        "result": system_info,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["system_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 2: Try to access process information
+try:
+    import psutil
+    process_count = len(psutil.pids())
+    memory_info = dict(psutil.virtual_memory()._asdict())
+    results["tests"]["process_info"] = {
+        "success": True,
+        "result": {
+            "process_count": process_count,
+            "memory_info": {k: v for k, v in memory_info.items() if k in ["total", "available", "percent"]}
+        },
+        "error": None
+    }
+except ImportError:
+    results["tests"]["process_info"] = {
+        "success": False,
+        "result": None,
+        "error": "psutil module not available"
+    }
+except Exception as e:
+    results["tests"]["process_info"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 3: Try to access current process environment
+try:
+    # Just get a few environment variables for demonstration
+    env_vars = {k: os.environ.get(k) for k in ["USER", "HOME", "PATH", "PYTHONPATH"]}
+    results["tests"]["environment_variables"] = {
+        "success": True,
+        "result": env_vars,
+        "error": None
+    }
+except Exception as e:
+    results["tests"]["environment_variables"] = {
+        "success": False,
+        "result": None,
+        "error": str(e)
+    }
+
+# Test 4: Try to load system-specific modules
+system_modules = ["sys", "os.path", "ctypes", "signal"]
+for module in system_modules:
+    try:
+        __import__(module)
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": True,
+            "result": f"Successfully imported {module}",
+            "error": None
+        }
+    except Exception as e:
+        results["tests"][f"import_{module.replace('.', '_')}"] = {
+            "success": False,
+            "result": None,
+            "error": str(e)
+        }
+
+# Output results in JSON format
+print(json.dumps(results, indent=2))
+EOF
+
+echo -e "\nMCP sandbox tests completed."
+#+END_SRC
+
+** Generate Comparison Report
+
+This script compares the results and generates a report:
+
+#+BEGIN_SRC shell :tangle generate_report.sh
+#!/bin/bash
+# Generate the comparison report
+
+echo "Generating comparison report..."
+
+# Run the comparison script
+python compare_results.py
+
+echo "Report generation completed."
+echo "View the report at: results/isolation_report.md"
+#+END_SRC
+
+* Main Tutorial Script
+
+This script ties everything together:
+
+#+BEGIN_SRC shell :tangle run_tutorial.sh
+#!/bin/bash
+# Main tutorial script
+
+echo "===== MCP Sandbox Isolation Tutorial ====="
+echo "This tutorial demonstrates the security boundaries of the Pydantic MCP Run Python server"
+echo "by comparing the behavior of Python code when run directly on the host versus through"
+echo "the MCP sandbox."
+echo
+
+# Setup
+chmod +x *.sh
+chmod +x *.py
+mkdir -p results
+
+# Run direct tests
+echo "===== Running Tests Directly on Host System ====="
+./run_direct_tests.sh
+
+# Run MCP sandbox tests
+echo -e "\n===== Running Tests Through MCP Sandbox ====="
+./run_mcp_tests.sh
+
+# Generate report
+echo -e "\n===== Generating Comparison Report ====="
+./generate_report.sh
+
+echo -e "\n===== Tutorial Complete ====="
+echo "The tutorial has demonstrated the security boundaries provided by the MCP sandbox."
+echo "View the report at: results/isolation_report.md"
+#+END_SRC
+
+* Conclusion
+
+This tutorial demonstrates the security boundaries of the Pydantic MCP Run Python server by comparing 
+the behavior of identical Python code when run directly on the host system versus through the MCP sandbox.
+
+The tests cover:
+- File system access restrictions
+- Command execution limitations
+- Network access controls
+- System resource isolation
+
+By running these tests in both environments and comparing the results, you can see exactly which 
+operations are blocked by the sandbox, providing a clear picture of the security protections in place.
+
+To run the tutorial:
+1. Tangle this org file to generate all the scripts (all files will be generated in the current directory)
+2. Run `./run_tutorial.sh`
+3. Examine the results in `results/isolation_report.md`
+
+The report will highlight which operations succeeded in direct execution but failed in the MCP sandbox, 
+demonstrating the effectiveness of the sandbox isolation.
