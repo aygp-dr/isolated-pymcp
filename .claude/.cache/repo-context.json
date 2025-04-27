@@ -1,0 +1,69 @@
+{
+  "repository": {
+    "name": "isolated-pymcp",
+    "description": "A secure, isolated environment for Python development with MCP and LSP",
+    "structure": {
+      "algorithms": {
+        "description": "Core algorithm implementations",
+        "files": ["factorial.py", "fibonacci.py", "primes.py"]
+      },
+      "tests": {
+        "description": "Test files for algorithms",
+        "files": ["test_factorial.py", "test_fibonacci.py", "test_primes.py"]
+      },
+      "scripts": {
+        "description": "Utility scripts for setup and execution",
+        "files": ["analyze-with-claude.sh", "benchmark.sh", "check-mcp-setup.sh", "cleanup.sh", "install-mcp-servers.sh", "mcp-python-test.sh", "setup.sh", "start-mcp-servers.sh", "tangle-setup.sh", "update-mcp-servers.sh", "claude-commands-setup.sh"]
+      },
+      "config": {
+        "description": "Configuration files for MCP and services",
+        "files": ["multilspy_config.py"]
+      },
+      "docs": {
+        "description": "Project documentation",
+        "files": ["status/2025-04-20-claude-3-7-sonnet.md", "status/2025-04-21-claude-3-7-sonnet.md", "status/2025-04-22-claude-3-7-sonnet.md"]
+      }
+    }
+  },
+  "components": {
+    "algorithms": {
+      "factorial": {
+        "implementations": ["recursive", "tail_recursive", "memoized", "iterative"],
+        "complexity": {
+          "time": "O(n)",
+          "space": "O(n) for recursive, O(1) for iterative"
+        }
+      },
+      "fibonacci": {
+        "implementations": ["recursive", "memoized", "iterative", "generator"],
+        "complexity": {
+          "time": "O(2^n) for recursive, O(n) for others",
+          "space": "O(n) for recursive/memoized, O(1) for iterative"
+        }
+      },
+      "primes": {
+        "implementations": ["naive_test", "optimized_test", "sieve"],
+        "complexity": {
+          "time": "O(√n) for primality test, O(n log log n) for sieve",
+          "space": "O(1) for test, O(n) for sieve"
+        }
+      }
+    },
+    "mcp": {
+      "servers": ["python-runner", "memory", "filesystem", "github", "multilspy", "pythonlsp"],
+      "ports": {
+        "python-runner": 3001,
+        "memory": 3002,
+        "filesystem": 3003,
+        "github": 3004,
+        "multilspy": 3005,
+        "pythonlsp": 3006
+      }
+    }
+  },
+  "dependencies": {
+    "python": ">=3.9",
+    "build": ["setuptools>=42", "wheel"],
+    "development": ["black", "isort", "mypy", "pytest"]
+  }
+}

@@ -1,0 +1,70 @@
+name: Claude Code Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'algorithms/**'
+      - 'tests/**'
+      - '.github/workflows/code-analysis.yml'
+  workflow_dispatch:
+    inputs:
+      algorithm:
+        description: 'Specific algorithm to analyze (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  analyze-algorithms:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Algorithm Parameter
+        id: set-algorithm
+        run: |
+          if [ -n "${{ github.event.inputs.algorithm }}" ]; then
+            echo "ALGORITHM=${{ github.event.inputs.algorithm }}" >> $GITHUB_ENV
+          else
+            echo "ALGORITHM=all" >> $GITHUB_ENV
+          fi
+
+      - name: Claude Code Analysis
+        uses: ./.github/actions/claude-code-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt_file: ./.claude/prompts/algorithm-analysis.txt
+          output_file: ./analysis_results/claude_analysis.md
+          timeout_minutes: 15
+          install_github_mcp: true
+
+      - name: Upload Analysis Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: algorithm-analysis
+          path: ./analysis_results/claude_analysis.md
+          retention-days: 14
+
+      - name: Add Analysis Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysisPath = './analysis_results/claude_analysis.md';
+            
+            if (fs.existsSync(analysisPath)) {
+              const analysis = fs.readFileSync(analysisPath, 'utf8');
+              const comment = `## Claude Code Algorithm Analysis\n\n${analysis}\n\n---\n*This analysis was generated automatically by Claude Code.*`;
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            } else {
+              console.log('Analysis file not found');
+            }

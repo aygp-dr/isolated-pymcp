@@ -1,0 +1,26 @@
+{
+  "hotspots": [
+    {
+      "file": "algorithms/fibonacci.py",
+      "lines": "13-28",
+      "complexity": "high",
+      "reason": "Recursive implementation with exponential time complexity",
+      "impact": "Performance bottleneck for large inputs",
+      "suggestions": [
+        "Consider using only memoization or iteration for large inputs",
+        "Add input validation to prevent stack overflow"
+      ]
+    },
+    {
+      "file": "algorithms/primes.py",
+      "lines": "10-22",
+      "complexity": "medium",
+      "reason": "Naive primality testing without optimization",
+      "impact": "Inefficient for large prime checks",
+      "suggestions": [
+        "Implement Sieve of Eratosthenes for bulk prime generation",
+        "Use probabilistic primality tests for very large numbers"
+      ]
+    }
+  ]
+}

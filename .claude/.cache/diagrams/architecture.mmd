@@ -1,0 +1,25 @@
+graph TD
+    subgraph "isolated-pymcp"
+        A[User Interface] --> B[MCP Container]
+        B --> C[MCP Servers]
+        C --> D[Algorithm Analysis]
+        
+        subgraph "MCP Servers"
+            C1[python-runner] 
+            C2[memory]
+            C3[filesystem]
+            C4[github]
+            C5[multilspy]
+            C6[pythonlsp]
+        end
+        
+        subgraph "Algorithms"
+            D1[Factorial]
+            D2[Fibonacci]
+            D3[Primes]
+        end
+        
+        D --> D1
+        D --> D2
+        D --> D3
+    end

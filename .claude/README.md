@@ -1,22 +1,42 @@
-# Claude Code Commands
+# Claude Code Project Commands
 
-This directory contains standard command templates for use with Claude Code. These commands provide structured templates for common development tasks.
+This directory contains Claude Code custom command configurations for this project. These commands help standardize interactions with Claude Code agents.
 
-## Installation
+## Command List
 
-To install these commands to your local Claude Code commands directory:
+- **code:analyze**: Perform comprehensive codebase analysis
+- **code:diagram**: Create diagrams of system architecture or components
+- **code:hotspots**: Analyze code complexity and improvement areas
+- **code:review**: Review code changes for quality and issues
+- **code:doc**: Generate documentation for components
+- **code:security**: Perform security analysis of components
+- **code:visualize**: Create visual representations of code structure
+- **code:optimize**: Find optimization opportunities
+- **code:test**: Generate test cases for components
 
-```bash
-# Make the script executable
-chmod +x .claude/install-commands.sh
+## Usage
 
-# Run the installation script
-./.claude/install-commands.sh
+These commands can be used in Claude Code by typing:
+
+```
+/project:code:analyze
+/project:code:diagram <type>
+/project:code:hotspots
+/project:code:review <files>
+/project:code:doc <component>
+/project:code:security <component>
+/project:code:visualize <item>
+/project:code:optimize <component>
+/project:code:test <component>
 ```
 
-This script will copy the command files to `~/.claude/commands/`, removing the `user:` prefix from the filenames.
+## Configuration
 
-## Available Commands
+Command definitions are stored in `.claude/commands/` directory. Each command has its own markdown file that defines the prompt for Claude when the command is invoked.
+
+## User Commands
+
+The repository also includes standard user commands:
 
 - `/user:security-review` - Perform a thorough security review of the codebase
 - `/user:security-review-full` - Perform an in-depth comprehensive security review
@@ -29,26 +49,11 @@ This script will copy the command files to `~/.claude/commands/`, removing the `
 - `/user:issue-triage` - Triage and manage GitHub issues
 - `/user:validate-issue-labels` - Validate issue labels against standards
 
-## Usage
+## Static Analysis
 
-To use these commands with Claude Code:
+The commands reference static analysis data in:
+- `.claude/.cache/repo-context.json`: Repository context information
+- `.claude/.cache/diagrams/`: Diagram references
+- `.claude/.cache/analysis/hotspots.json`: Code complexity hotspots
 
-1. Run the Claude Code CLI and connect to this repository
-2. Enter the command (e.g., `/user:security-review`)
-3. Claude will execute the command according to its template
-
-## Adding New Commands
-
-To add a new command:
-
-1. Create a new markdown file in `.claude/commands/` with the format `user:command-name.md`
-2. Structure the command with clear instructions and tasks
-3. Use markdown formatting for better readability
-4. Add the new command to this README
-
-## Best Practices
-
-- Keep commands focused on a single responsibility
-- Include clear success criteria
-- Provide structured output formats
-- Document any required context or prerequisites
+You can modify command definitions in the `.claude/commands/` directory to customize their behavior.
