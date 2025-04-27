@@ -350,6 +350,25 @@ mcp-add: ## Run Python code via MCP
 		--allow-read=. \
 		jsr:@pydantic/mcp-run-python stdio | jq
 
+# Pydantic MCP Server targets
+.PHONY: pydantic-mcp-start pydantic-mcp-test pydantic-mcp-stop
+
+pydantic-mcp-start: ## Start Pydantic MCP run-python server
+	@./scripts/start-pydantic-mcp.sh
+
+pydantic-mcp-test: ## Test Pydantic MCP run-python server
+	@./scripts/test-pydantic-mcp.sh
+
+pydantic-mcp-stop: ## Stop Pydantic MCP run-python server
+	@if [ -f "data/logs/pydantic-mcp.pid" ]; then \
+		echo "Stopping Pydantic MCP run-python server..."; \
+		kill $$(cat data/logs/pydantic-mcp.pid) || true; \
+		rm -f data/logs/pydantic-mcp.pid; \
+		echo "Server stopped."; \
+	else \
+		echo "No PID file found. Server may not be running."; \
+	fi
+
 # Git worktree management targets
 .PHONY: worktree-new worktree-list worktree-status worktree-delete worktree-switch worktree-init
 
