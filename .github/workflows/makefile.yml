@@ -8,20 +8,85 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: configure
-      run: ./configure
-
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: Create required directories
+      run: make dirs
+      
+    - name: Generate configuration files
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y emacs-nox
+        make tangle
+    
     - name: Install dependencies
-      run: make
-
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
+      run: |
+        uv venv .venv
+        . .venv/bin/activate
+        uv pip install pytest flake8 black mypy isort
+        uv pip install -e ".[dev]"
+    
+    - name: Run check-all (lint, format, typecheck)
+      run: |
+        . .venv/bin/activate
+        make check-all
+    
+    - name: Run tests
+      run: |
+        . .venv/bin/activate
+        make pytest
+    
+    - name: Setup Deno for MCP
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: v1.41.x
+    
+    - name: Test Pydantic MCP Run Python
+      run: |
+        make pydantic-mcp-test
+    
+    - name: Install Docker
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image (if available)
+      continue-on-error: true
+      run: make build
+    
+    - name: Run sandbox isolation tests (if available)
+      continue-on-error: true
+      run: |
+        mkdir -p tutorials/sandbox-isolation/results
+        if [ -d "tutorials/sandbox-isolation" ] && [ -f "tutorials/sandbox-isolation/run_direct_tests.sh" ]; then
+          cd tutorials/sandbox-isolation
+          chmod +x *.sh
+          ./run_direct_tests.sh
+          
+          if [ -f "compare_results.py" ]; then
+            python compare_results.py
+          fi
+        else
+          echo "Sandbox isolation tests not found, skipping..."
+        fi
+      
+    - name: Upload test reports (if available)
+      if: always()
+      continue-on-error: true
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-reports
+        path: |
+          tutorials/sandbox-isolation/results/isolation_report.md
+          coverage.xml
