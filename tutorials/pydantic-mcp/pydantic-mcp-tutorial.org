@@ -1,7 +1,7 @@
 #+TITLE: Getting Started with Pydantic AI and MCP Run Python
-#+AUTHOR: jwalsh
-#+DATE: 2025-04-22
-#+EMAIL: jwalsh@example.com
+#+AUTHOR: jwalsh@defrecord.com
+#+DATE: 2025-04-27
+#+EMAIL: jwalsh@defrecord.com
 #+LANGUAGE: en
 
 * Introduction to Pydantic AI and MCP

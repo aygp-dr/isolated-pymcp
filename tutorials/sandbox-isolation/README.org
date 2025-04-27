@@ -1,6 +1,8 @@
 #+TITLE: MCP Sandbox Isolation: Security Boundaries in Practice
-#+AUTHOR: Claude
+#+AUTHOR: apace@defrecord.com
 #+DATE: 2025-04-27
+#+EMAIL: apace@defrecord.com
+#+LANGUAGE: en
 #+PROPERTY: header-args:python :results output :exports both :mkdirp yes
 #+PROPERTY: header-args:shell :results output :exports both :mkdirp yes
 #+PROPERTY: header-args :tangle yes

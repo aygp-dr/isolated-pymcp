@@ -1,5 +1,9 @@
 # MCP Tutorials Comparison: pydantic-mcp vs. sandbox-isolation
 
+**Author**: apace@defrecord.com
+**Contributors**: jwalsh@defrecord.com, xtao@defrecord.com
+**Last Updated**: 2025-04-27
+
 ## Overview
 
 This documentation clearly establishes the separation of concerns between our two MCP tutorials:
