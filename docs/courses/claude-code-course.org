@@ -287,20 +287,170 @@ In this exercise, you'll:
 :CUSTOM_ID: code-review-best-practices
 :END:
 
+Claude Code excels at code review tasks. Here's how to leverage it effectively:
+
+1. *Automated Code Quality Checks*:
+   #+begin_src shell
+   # Basic code review
+   claude "Review this file for code quality, security issues, and best practices" src/auth.py
+   
+   # Focus on specific aspects
+   claude "Check this function for potential security vulnerabilities" src/login.py:authenticate_user
+   
+   # Performance analysis
+   claude "Analyze this algorithm for performance bottlenecks and suggest optimizations" algorithms/sort.py
+   #+end_src
+
+2. *Structured Review Templates*:
+   #+begin_src shell
+   claude "Review this PR and provide feedback in this format:
+   ## Security Analysis
+   - [List any security concerns]
+   
+   ## Code Quality
+   - [Maintainability issues]
+   - [Style violations]
+   
+   ## Performance
+   - [Performance concerns]
+   
+   ## Suggested Improvements
+   - [Specific actionable recommendations]"
+   #+end_src
+
+3. *Architecture and Design Reviews*:
+   #+begin_src shell
+   # High-level design review
+   claude "Analyze this codebase architecture and suggest improvements"
+   
+   # Design pattern analysis
+   claude "Identify design patterns used in this code and suggest alternatives if appropriate"
+   #+end_src
+
 *** PR Creation and Management
 :PROPERTIES:
 :CUSTOM_ID: pr-management
 :END:
+
+Streamline your PR workflow with Claude Code:
+
+1. *Automated PR Descriptions*:
+   #+begin_src shell
+   # Generate PR description from git diff
+   git diff main...feature-branch | claude "Create a comprehensive PR description based on these changes. Include:
+   - Summary of changes
+   - Testing approach
+   - Breaking changes (if any)
+   - Reviewer notes"
+   #+end_src
+
+2. *Commit Message Generation*:
+   #+begin_src shell
+   # Generate conventional commit messages
+   git diff --staged | claude "Generate a conventional commit message for these staged changes"
+   
+   # Example output: "feat(auth): add OAuth2 integration with Google"
+   #+end_src
+
+3. *PR Review Automation*:
+   #+begin_src shell
+   # Review an entire PR
+   gh pr diff 123 | claude "Review this PR for:
+   1. Code quality and maintainability
+   2. Potential bugs or edge cases
+   3. Security considerations
+   4. Testing completeness
+   5. Documentation needs"
+   #+end_src
+
+4. *Merge Readiness Assessment*:
+   #+begin_src shell
+   # Check if PR is ready for merge
+   claude "Assess if this PR is ready for merge based on:
+   - Code quality
+   - Test coverage
+   - Documentation
+   - Breaking changes
+   - Security implications" < pr-diff.txt
+   #+end_src
 
 *** Code Summarization Techniques
 :PROPERTIES:
 :CUSTOM_ID: code-summarization
 :END:
 
+Effective code summarization helps with documentation and knowledge transfer:
+
+1. *Function and Class Summaries*:
+   #+begin_src shell
+   # Summarize a complex function
+   claude "Summarize this function's purpose, parameters, return value, and any side effects" src/complex_algorithm.py:process_data
+   
+   # Class overview
+   claude "Provide a high-level overview of this class, its responsibilities, and main methods" src/user_manager.py:UserManager
+   #+end_src
+
+2. *Module and Package Summaries*:
+   #+begin_src shell
+   # Summarize an entire module
+   claude "Create a module summary including purpose, main components, and usage examples" src/authentication.py
+   
+   # Package overview
+   claude "Generate a README for this package based on the code structure and functionality" src/utils/
+   #+end_src
+
+3. *Codebase Architecture Summaries*:
+   #+begin_src shell
+   # High-level architecture overview
+   claude "Analyze this codebase and create an architectural summary with:
+   - Main components and their relationships
+   - Data flow
+   - Key design patterns
+   - External dependencies"
+   
+   # Generate Mermaid diagrams
+   claude "Create a Mermaid diagram showing the architecture of this system"
+   #+end_src
+
+4. *Change Impact Analysis*:
+   #+begin_src shell
+   # Analyze the impact of changes
+   git diff main...feature | claude "Analyze the impact of these changes on:
+   - Existing functionality
+   - Performance
+   - API compatibility
+   - Dependencies"
+   #+end_src
+
 *** Exercise: Review and Summarize a PR
 :PROPERTIES:
 :CUSTOM_ID: exercise-pr-review
 :END:
+
+Practice using Claude Code for comprehensive PR review:
+
+1. *Setup*:
+   #+begin_src shell
+   # Clone a sample repository
+   git clone https://github.com/anthropics/claude-code
+   cd claude-code
+   
+   # Find a recent PR to analyze
+   gh pr list --limit 5
+   #+end_src
+
+2. *Tasks*:
+   - Use Claude Code to review a PR for code quality
+   - Generate a comprehensive PR summary
+   - Create automated review comments
+   - Assess merge readiness
+   - Generate documentation based on the changes
+
+3. *Deliverables*:
+   - PR review report
+   - Suggested improvements
+   - Documentation updates
+   - Security assessment
 
 * Day 2: Advanced Claude Code Usage
 :PROPERTIES:
@@ -317,20 +467,300 @@ In this exercise, you'll:
 :CUSTOM_ID: command-structure
 :END:
 
+Claude Code commands are structured prompts that can be reused and shared. Understanding their structure is key to creating effective custom commands.
+
+1. *Basic Command Structure*:
+   #+begin_src yaml
+   # .claude/commands/analyze-security.yaml
+   name: analyze-security
+   description: Analyze code for security vulnerabilities
+   prompt: |
+     Please analyze the following code for security vulnerabilities. 
+     Focus on:
+     - SQL injection risks
+     - XSS vulnerabilities  
+     - Authentication bypasses
+     - Input validation issues
+     - Sensitive data exposure
+     
+     Provide specific recommendations for each issue found.
+     
+     Code to analyze:
+     {selection}
+   #+end_src
+
+2. *Advanced Command Features*:
+   #+begin_src yaml
+   # .claude/commands/generate-docs.yaml
+   name: generate-docs
+   description: Generate comprehensive documentation
+   prompt: |
+     Generate comprehensive documentation for this code in the following format:
+     
+     ## Overview
+     Brief description of what this code does
+     
+     ## Parameters
+     List and describe all parameters
+     
+     ## Return Value
+     Describe what the function/method returns
+     
+     ## Examples
+     Provide practical usage examples
+     
+     ## Dependencies
+     List any external dependencies
+     
+     Code: {selection}
+   variables:
+     - name: format
+       description: Output format (markdown, rst, html)
+       default: markdown
+   #+end_src
+
+3. *Command Categories and Organization*:
+   #+begin_src shell
+   # Organize commands by category
+   .claude/commands/
+   ├── analysis/
+   │   ├── security-scan.yaml
+   │   ├── performance-check.yaml
+   │   └── code-quality.yaml
+   ├── generation/
+   │   ├── unit-tests.yaml
+   │   ├── documentation.yaml
+   │   └── api-endpoints.yaml
+   └── refactoring/
+       ├── optimize-functions.yaml
+       ├── modernize-syntax.yaml
+       └── extract-constants.yaml
+   #+end_src
+
 *** Creating Your First Command
 :PROPERTIES:
 :CUSTOM_ID: creating-commands
 :END:
+
+Let's create practical custom commands step by step:
+
+1. *Set up the command directory*:
+   #+begin_src shell
+   # Create commands directory structure
+   mkdir -p .claude/commands/analysis
+   mkdir -p .claude/commands/generation
+   mkdir -p .claude/commands/refactoring
+   #+end_src
+
+2. *Create a code review command*:
+   #+begin_src yaml
+   # .claude/commands/analysis/code-review.yaml
+   name: code-review
+   description: Comprehensive code review with actionable feedback
+   prompt: |
+     Please conduct a comprehensive code review of the following code. 
+     Provide feedback in these categories:
+     
+     ## Code Quality
+     - Readability and maintainability
+     - Naming conventions
+     - Code organization
+     
+     ## Performance
+     - Potential bottlenecks
+     - Optimization opportunities
+     - Resource usage
+     
+     ## Security
+     - Vulnerability assessment
+     - Best practices compliance
+     
+     ## Testing
+     - Test coverage adequacy
+     - Suggested test cases
+     
+     ## Recommendations
+     - Specific, actionable improvements
+     - Priority ranking (High/Medium/Low)
+     
+     Code to review:
+     {selection}
+   #+end_src
+
+3. *Create a test generation command*:
+   #+begin_src yaml
+   # .claude/commands/generation/unit-tests.yaml
+   name: generate-tests
+   description: Generate comprehensive unit tests
+   prompt: |
+     Generate comprehensive unit tests for the following code.
+     
+     Requirements:
+     - Use pytest framework
+     - Include positive and negative test cases
+     - Test edge cases and error conditions
+     - Add parametrized tests where appropriate
+     - Include setup and teardown if needed
+     - Add docstrings explaining test scenarios
+     
+     Original code:
+     {selection}
+   variables:
+     - name: framework
+       description: Testing framework to use
+       default: pytest
+   #+end_src
+
+4. *Create a refactoring command*:
+   #+begin_src yaml
+   # .claude/commands/refactoring/optimize.yaml
+   name: optimize-code
+   description: Optimize code for performance and readability
+   prompt: |
+     Please optimize the following code for both performance and readability.
+     
+     Focus on:
+     - Algorithm efficiency improvements
+     - Memory usage optimization
+     - Code clarity and structure
+     - Removal of redundancy
+     - Better error handling
+     
+     Provide both the optimized code and an explanation of changes made.
+     
+     Original code:
+     {selection}
+   #+end_src
+
+5. *Using your custom commands*:
+   #+begin_src shell
+   # List available commands
+   claude commands list
+   
+   # Use a custom command
+   claude code-review src/authentication.py
+   
+   # Use command with selection
+   claude generate-tests --selection "def calculate_fibonacci(n):"
+   
+   # Use command with variables
+   claude generate-tests --framework unittest src/math_utils.py
+   #+end_src
 
 *** Command Distribution and Versioning
 :PROPERTIES:
 :CUSTOM_ID: command-distribution
 :END:
 
+Share and manage your custom commands effectively:
+
+1. *Version Control Integration*:
+   #+begin_src shell
+   # Add commands to version control
+   git add .claude/commands/
+   git commit -m "feat: add custom Claude Code commands for code review and testing"
+   
+   # Create a commands repository
+   git init claude-commands
+   cd claude-commands
+   cp -r ../.claude/commands/* .
+   git add .
+   git commit -m "initial: custom Claude Code commands collection"
+   git remote add origin https://github.com/your-org/claude-commands.git
+   git push -u origin main
+   #+end_src
+
+2. *Command Sharing and Import*:
+   #+begin_src shell
+   # Share commands via git repository
+   git clone https://github.com/your-team/shared-claude-commands.git
+   cp -r shared-claude-commands/* .claude/commands/
+   
+   # Or create a symbolic link for easier updates
+   ln -s ~/shared-claude-commands/analysis .claude/commands/analysis
+   #+end_src
+
+3. *Command Validation and Testing*:
+   #+begin_src shell
+   # Test command syntax
+   claude commands validate .claude/commands/analysis/code-review.yaml
+   
+   # Test command execution
+   claude code-review --dry-run src/sample.py
+   #+end_src
+
+4. *Documentation and Metadata*:
+   #+begin_src yaml
+   # .claude/commands/metadata.yaml
+   version: "1.0.0"
+   author: "Development Team"
+   description: "Custom commands for code analysis and generation"
+   commands:
+     - name: code-review
+       category: analysis
+       version: "1.2.0"
+       last_updated: "2024-03-15"
+     - name: generate-tests  
+       category: generation
+       version: "1.1.0"
+       last_updated: "2024-03-10"
+   #+end_src
+
 *** Exercise: Build a Custom Command
 :PROPERTIES:
 :CUSTOM_ID: exercise-custom-command
 :END:
+
+Create a complete custom command workflow:
+
+1. *Design Phase*:
+   - Identify a repetitive task in your workflow
+   - Define the command's scope and requirements
+   - Plan the prompt structure and variables
+
+2. *Implementation*:
+   #+begin_src shell
+   # Create your command directory
+   mkdir -p .claude/commands/custom
+   
+   # Create a command for API documentation generation
+   cat > .claude/commands/custom/api-docs.yaml << 'EOF'
+   name: generate-api-docs
+   description: Generate OpenAPI documentation from code
+   prompt: |
+     Generate OpenAPI 3.0 documentation for the following API code.
+     
+     Include:
+     - Endpoint descriptions
+     - Parameter schemas
+     - Response schemas
+     - Example requests/responses
+     - Error codes and messages
+     
+     Format as valid OpenAPI YAML.
+     
+     Code:
+     {selection}
+   variables:
+     - name: version
+       description: API version
+       default: "1.0.0"
+   EOF
+   #+end_src
+
+3. *Testing and Refinement*:
+   #+begin_src shell
+   # Test the command
+   claude generate-api-docs src/api/users.py
+   
+   # Refine based on results
+   # Add more specific prompts or variables as needed
+   #+end_src
+
+4. *Integration*:
+   - Add command to version control
+   - Document usage for team members  
+   - Create shortcuts or aliases for frequent use
 
 ** Model Context Protocol (MCP) Integration
 :PROPERTIES:
@@ -342,20 +772,362 @@ In this exercise, you'll:
 :CUSTOM_ID: mcp-architecture
 :END:
 
+The Model Context Protocol (MCP) enables Claude Code to interact with external tools and data sources through a standardized protocol.
+
+1. *MCP Core Concepts*:
+   #+begin_src text
+   Claude Code Client ←→ MCP Server ←→ External Service/Tool
+                      (JSON-RPC over stdio/HTTP)
+   #+end_src
+
+   - *Client*: Claude Code acts as the MCP client
+   - *Server*: Provides tools and resources to Claude
+   - *Protocol*: JSON-RPC communication standard
+   - *Tools*: Functions that Claude can call
+   - *Resources*: Data sources Claude can access
+
+2. *MCP Message Types*:
+   #+begin_src json
+   {
+     "jsonrpc": "2.0",
+     "method": "tools/list",
+     "id": 1
+   }
+   
+   {
+     "jsonrpc": "2.0",
+     "result": {
+       "tools": [
+         {
+           "name": "search_database",
+           "description": "Search the product database",
+           "inputSchema": {
+             "type": "object",
+             "properties": {
+               "query": {"type": "string"}
+             }
+           }
+         }
+       ]
+     },
+     "id": 1
+   }
+   #+end_src
+
+3. *MCP Configuration Structure*:
+   #+begin_src json
+   {
+     "mcpServers": {
+       "filesystem": {
+         "command": "npx",
+         "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/files"]
+       },
+       "database": {
+         "command": "python",
+         "args": ["-m", "mcp_server_database"],
+         "env": {
+           "DATABASE_URL": "postgresql://localhost/mydb"
+         }
+       }
+     }
+   }
+   #+end_src
+
 *** Setting Up MCP Servers
 :PROPERTIES:
 :CUSTOM_ID: setting-up-mcp
 :END:
+
+Configure and deploy MCP servers for Claude Code integration:
+
+1. *Install Common MCP Servers*:
+   #+begin_src shell
+   # Filesystem server for file operations
+   npm install -g @modelcontextprotocol/server-filesystem
+   
+   # SQLite database server
+   npm install -g @modelcontextprotocol/server-sqlite
+   
+   # Web search server
+   npm install -g @modelcontextprotocol/server-brave-search
+   
+   # GitHub integration server
+   npm install -g @modelcontextprotocol/server-github
+   #+end_src
+
+2. *Configure Claude Code with MCP Servers*:
+   #+begin_src json
+   # ~/.claude/mcp_servers.json
+   {
+     "mcpServers": {
+       "filesystem": {
+         "command": "npx",
+         "args": [
+           "-y", 
+           "@modelcontextprotocol/server-filesystem",
+           "/home/user/projects",
+           "/home/user/documents"
+         ]
+       },
+       "sqlite": {
+         "command": "npx",
+         "args": [
+           "-y",
+           "@modelcontextprotocol/server-sqlite",
+           "--db-path",
+           "/home/user/data/app.db"
+         ]
+       },
+       "github": {
+         "command": "npx",
+         "args": ["-y", "@modelcontextprotocol/server-github"],
+         "env": {
+           "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+         }
+       }
+     }
+   }
+   #+end_src
+
+3. *Test MCP Server Configuration*:
+   #+begin_src shell
+   # Test filesystem access
+   claude "List all Python files in the projects directory"
+   
+   # Test database queries
+   claude "Show me the schema of the users table in the database"
+   
+   # Test GitHub integration
+   claude "Show me recent issues in the main repository"
+   #+end_src
+
+4. *Environment-Specific Configuration*:
+   #+begin_src shell
+   # Development environment
+   cp mcp_servers.dev.json ~/.claude/mcp_servers.json
+   
+   # Production environment with restricted access
+   cp mcp_servers.prod.json ~/.claude/mcp_servers.json
+   #+end_src
 
 *** Building MCP-Aware Applications
 :PROPERTIES:
 :CUSTOM_ID: mcp-applications
 :END:
 
+Create applications that leverage MCP for enhanced functionality:
+
+1. *Simple Python MCP Server*:
+   #+begin_src python
+   # custom_mcp_server.py
+   import asyncio
+   import json
+   import sys
+   from typing import Any, Dict, List
+   
+   from mcp.server.models import InitializationOptions
+   from mcp.server import NotificationOptions, Server
+   from mcp.types import Resource, Tool, TextContent, ImageContent, EmbeddedResource
+   import mcp.types as types
+   
+   
+   class CustomMCPServer:
+       def __init__(self):
+           self.server = Server("custom-server")
+           self.setup_handlers()
+   
+       def setup_handlers(self):
+           @self.server.list_tools()
+           async def handle_list_tools() -> List[Tool]:
+               return [
+                   Tool(
+                       name="calculate_fibonacci",
+                       description="Calculate Fibonacci number at position n",
+                       inputSchema={
+                           "type": "object",
+                           "properties": {
+                               "n": {
+                                   "type": "integer",
+                                   "description": "Position in Fibonacci sequence"
+                               }
+                           },
+                           "required": ["n"]
+                       }
+                   ),
+                   Tool(
+                       name="analyze_code_complexity",
+                       description="Analyze code complexity metrics",
+                       inputSchema={
+                           "type": "object", 
+                           "properties": {
+                               "code": {
+                                   "type": "string",
+                                   "description": "Code to analyze"
+                               }
+                           },
+                           "required": ["code"]
+                       }
+                   )
+               ]
+   
+           @self.server.call_tool()
+           async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+               if name == "calculate_fibonacci":
+                   n = arguments.get("n", 0)
+                   result = self.fibonacci(n)
+                   return [types.TextContent(
+                       type="text",
+                       text=f"Fibonacci({n}) = {result}"
+                   )]
+               
+               elif name == "analyze_code_complexity":
+                   code = arguments.get("code", "")
+                   complexity = self.analyze_complexity(code)
+                   return [types.TextContent(
+                       type="text", 
+                       text=f"Code complexity analysis:\n{complexity}"
+                   )]
+               
+               else:
+                   raise ValueError(f"Unknown tool: {name}")
+   
+       def fibonacci(self, n: int) -> int:
+           if n <= 1:
+               return n
+           return self.fibonacci(n-1) + self.fibonacci(n-2)
+   
+       def analyze_complexity(self, code: str) -> str:
+           lines = len(code.split('\n'))
+           chars = len(code)
+           return f"Lines: {lines}, Characters: {chars}, Estimated complexity: {'High' if lines > 50 else 'Medium' if lines > 20 else 'Low'}"
+   
+       async def run(self):
+           async with self.server as (read_stream, write_stream):
+               await self.server.run(
+                   read_stream,
+                   write_stream,
+                   InitializationOptions(
+                       server_name="custom-server",
+                       server_version="1.0.0",
+                       capabilities=self.server.get_capabilities(
+                           notification_options=NotificationOptions(),
+                           experimental_capabilities={},
+                       )
+                   )
+               )
+   
+   
+   if __name__ == "__main__":
+       server = CustomMCPServer()
+       asyncio.run(server.run())
+   #+end_src
+
+2. *MCP Server Configuration*:
+   #+begin_src json
+   # Add to ~/.claude/mcp_servers.json
+   {
+     "mcpServers": {
+       "custom": {
+         "command": "python",
+         "args": ["/path/to/custom_mcp_server.py"]
+       }
+     }
+   }
+   #+end_src
+
+3. *Advanced MCP Features*:
+   #+begin_src python
+   # Advanced MCP server with resources and progress tracking
+   @server.list_resources()
+   async def handle_list_resources() -> List[Resource]:
+       return [
+           Resource(
+               uri="file:///logs/application.log",
+               name="Application Logs",
+               description="Current application log file",
+               mimeType="text/plain"
+           ),
+           Resource(
+               uri="db://analytics/metrics",
+               name="Performance Metrics", 
+               description="Real-time performance metrics",
+               mimeType="application/json"
+           )
+       ]
+   
+   @server.read_resource()
+   async def handle_read_resource(uri: str) -> str:
+       if uri == "file:///logs/application.log":
+           with open("/var/log/app.log", "r") as f:
+               return f.read()
+       elif uri == "db://analytics/metrics":
+           # Fetch from database
+           metrics = get_performance_metrics()
+           return json.dumps(metrics)
+       else:
+           raise ValueError(f"Unknown resource: {uri}")
+   #+end_src
+
+4. *Using MCP in Claude Code Workflows*:
+   #+begin_src shell
+   # Analyze code using custom MCP tools
+   claude "Use the analyze_code_complexity tool to check the complexity of this function" src/algorithm.py:bubble_sort
+   
+   # Calculate values using MCP
+   claude "Calculate fibonacci(20) using the custom MCP server"
+   
+   # Access resources through MCP
+   claude "Read the application logs and summarize any errors"
+   #+end_src
+
 *** Exercise: Implement an MCP Server
 :PROPERTIES:
 :CUSTOM_ID: exercise-mcp-server
 :END:
+
+Build a complete MCP server for a specific use case:
+
+1. *Project Setup*:
+   #+begin_src shell
+   # Create MCP server project
+   mkdir claude-mcp-exercise
+   cd claude-mcp-exercise
+   
+   # Set up Python environment
+   python -m venv venv
+   source venv/bin/activate
+   pip install mcp
+   #+end_src
+
+2. *Implementation Tasks*:
+   - Create an MCP server that provides code analysis tools
+   - Implement tools for:
+     - Code metrics calculation (lines, complexity, dependencies)
+     - Security vulnerability scanning
+     - Performance analysis suggestions
+     - Test coverage assessment
+
+3. *Server Features*:
+   #+begin_src python
+   # Required tools to implement:
+   # 1. analyze_metrics(code: str) -> metrics report
+   # 2. scan_security(code: str) -> security issues
+   # 3. suggest_optimizations(code: str) -> performance tips
+   # 4. check_test_coverage(code: str, tests: str) -> coverage report
+   #+end_src
+
+4. *Integration and Testing*:
+   #+begin_src shell
+   # Configure Claude Code to use your server
+   # Test each tool individually
+   # Create a comprehensive workflow demonstration
+   #+end_src
+
+5. *Documentation*:
+   - Write clear documentation for each tool
+   - Provide usage examples
+   - Create troubleshooting guide
+   - Document deployment instructions
 
 ** Best Practices from Anthropic
 :PROPERTIES:
@@ -706,15 +1478,469 @@ Connect with other Claude Code users:
 :CUSTOM_ID: day-1-exercises
 :END:
 
+*** Exercise 1.1: Basic Setup and Configuration
+:PROPERTIES:
+:CUSTOM_ID: exercise-1-1
+:END:
+
+*Objective*: Complete initial setup and verify Claude Code functionality
+
+*Tasks*:
+1. Install Claude Code CLI and verify installation
+2. Configure API key (Anthropic or AWS Bedrock)
+3. Set up GitHub authentication
+4. Test basic commands
+
+*Expected Output*:
+#+begin_src shell
+claude --version
+# Should show version information
+
+claude "Hello, analyze this simple Python function for improvements"
+# Should provide code analysis
+#+end_src
+
+*** Exercise 1.2: Code Analysis and Review
+:PROPERTIES:
+:CUSTOM_ID: exercise-1-2
+:END:
+
+*Objective*: Practice using Claude Code for code review tasks
+
+*Tasks*:
+1. Clone a sample repository
+2. Use Claude to analyze code quality
+3. Generate a security assessment
+4. Create improvement recommendations
+
+*Sample Repository*:
+#+begin_src shell
+git clone https://github.com/anthropics/claude-code
+cd claude-code/examples
+#+end_src
+
+*Commands to Practice*:
+#+begin_src shell
+# Analyze a specific file
+claude "Review this file for code quality and security" src/example.py
+
+# Generate PR description
+git diff | claude "Create a comprehensive PR description"
+
+# Security analysis
+claude "Check for security vulnerabilities" src/auth.py
+#+end_src
+
+*** Exercise 1.3: AWS Bedrock Integration
+:PROPERTIES:
+:CUSTOM_ID: exercise-1-3
+:END:
+
+*Objective*: Configure and test Claude Code with AWS Bedrock
+
+*Tasks*:
+1. Set up AWS credentials and IAM permissions
+2. Request model access in Bedrock console
+3. Configure Claude Code for Bedrock usage
+4. Test functionality with different Claude models
+
+*Verification Commands*:
+#+begin_src shell
+# Test Bedrock configuration
+export CLAUDE_CODE_USE_BEDROCK=1
+claude "Test Bedrock integration with a simple query"
+
+# Try different models
+claude --bedrock-model anthropic.claude-3-haiku-20240307-v1:0 "Quick analysis"
+#+end_src
+
 ** Day 2 Exercises
 :PROPERTIES:
 :CUSTOM_ID: day-2-exercises
 :END:
 
+*** Exercise 2.1: Custom Command Creation
+:PROPERTIES:
+:CUSTOM_ID: exercise-2-1
+:END:
+
+*Objective*: Create and deploy custom Claude commands
+
+*Tasks*:
+1. Design commands for your specific workflow
+2. Implement commands with proper YAML structure
+3. Test commands with real code examples
+4. Share commands with team members
+
+*Required Commands to Create*:
+- Code review with custom criteria
+- Test generation for specific framework
+- Documentation generator for your project type
+- Security scanner with organization-specific rules
+
+*Template Structure*:
+#+begin_src yaml
+name: your-command
+description: Clear description of what it does
+prompt: |
+  Detailed prompt with specific instructions
+  
+  Code to analyze:
+  {selection}
+variables:
+  - name: framework
+    description: Testing framework to use
+    default: pytest
+#+end_src
+
+*** Exercise 2.2: MCP Server Development
+:PROPERTIES:
+:CUSTOM_ID: exercise-2-2
+:END:
+
+*Objective*: Build a functional MCP server for team use
+
+*Project Requirements*:
+- Implement at least 3 useful tools
+- Include proper error handling
+- Add comprehensive documentation
+- Create configuration examples
+
+*Suggested Tools to Implement*:
+1. Code metrics analyzer
+2. Dependency vulnerability scanner  
+3. Performance benchmark runner
+4. Test coverage reporter
+
+*Deliverables*:
+- Working MCP server code
+- Configuration file for Claude Code
+- Documentation with usage examples
+- Test suite for the server
+
+*** Exercise 2.3: End-to-End Workflow
+:PROPERTIES:
+:CUSTOM_ID: exercise-2-3
+:END:
+
+*Objective*: Create a complete development workflow using Claude Code
+
+*Scenario*: You're tasked with reviewing and improving a legacy codebase
+
+*Workflow Steps*:
+1. Initial codebase analysis using Claude
+2. Security vulnerability assessment
+3. Performance optimization recommendations
+4. Test coverage improvement
+5. Documentation generation
+6. PR creation with comprehensive description
+
+*Tools to Use*:
+- Custom commands for analysis
+- MCP servers for data access
+- Structured prompts for consistency
+- Git integration for PR management
+
+*Expected Deliverables*:
+- Comprehensive analysis report
+- Prioritized improvement recommendations
+- Generated tests and documentation
+- Ready-to-merge PR with clear description
+
 ** Solutions
 :PROPERTIES:
 :CUSTOM_ID: solutions
 :END:
+
+*** Exercise 1.1 Solution: Setup Verification
+:PROPERTIES:
+:CUSTOM_ID: solution-1-1
+:END:
+
+#+begin_src shell
+# Installation verification script
+#!/bin/bash
+
+echo "=== Claude Code Setup Verification ==="
+
+# Check installation
+if command -v claude &> /dev/null; then
+    echo "✓ Claude Code CLI installed"
+    claude --version
+else
+    echo "✗ Claude Code CLI not found"
+    echo "Install with: npm install -g @anthropic-ai/claude-code"
+    exit 1
+fi
+
+# Check API configuration
+if claude "test" --dry-run &> /dev/null; then
+    echo "✓ API configuration working"
+else
+    echo "✗ API configuration issue"
+    echo "Set ANTHROPIC_API_KEY or configure Bedrock"
+fi
+
+# Check GitHub authentication
+if gh auth status &> /dev/null; then
+    echo "✓ GitHub authentication configured"
+else
+    echo "⚠ GitHub authentication not configured"
+    echo "Run: gh auth login"
+fi
+
+echo "Setup verification complete!"
+#+end_src
+
+*** Exercise 2.1 Solution: Custom Commands
+:PROPERTIES:
+:CUSTOM_ID: solution-2-1
+:END:
+
+#+begin_src yaml
+# .claude/commands/analysis/comprehensive-review.yaml
+name: comprehensive-review
+description: Complete code review with security, performance, and quality analysis
+prompt: |
+  Conduct a comprehensive code review focusing on:
+  
+  ## Security Analysis
+  - Authentication and authorization issues
+  - Input validation vulnerabilities
+  - Data exposure risks
+  - Cryptographic implementation issues
+  
+  ## Performance Review
+  - Algorithm efficiency (Big O analysis)
+  - Memory usage patterns
+  - I/O optimization opportunities
+  - Caching strategies
+  
+  ## Code Quality Assessment
+  - SOLID principles adherence
+  - Code organization and structure
+  - Naming conventions and clarity
+  - Error handling completeness
+  
+  ## Testing Considerations
+  - Test coverage gaps
+  - Edge cases to consider
+  - Mock/stub opportunities
+  - Integration test needs
+  
+  Provide specific, actionable recommendations with priority levels.
+  
+  Code to review:
+  {selection}
+variables:
+  - name: language
+    description: Programming language for language-specific analysis
+    default: python
+  - name: focus
+    description: Primary focus area (security, performance, quality, testing)
+    default: all
+#+end_src
+
+*** Exercise 2.2 Solution: MCP Server Template
+:PROPERTIES:
+:CUSTOM_ID: solution-2-2
+:END:
+
+#+begin_src python
+# solution_mcp_server.py
+import asyncio
+import json
+import subprocess
+from typing import Any, Dict, List
+
+from mcp.server.models import InitializationOptions
+from mcp.server import NotificationOptions, Server
+from mcp.types import Tool, TextContent
+import mcp.types as types
+
+
+class CodeAnalysisMCPServer:
+    def __init__(self):
+        self.server = Server("code-analysis-server")
+        self.setup_handlers()
+
+    def setup_handlers(self):
+        @self.server.list_tools()
+        async def handle_list_tools() -> List[Tool]:
+            return [
+                Tool(
+                    name="analyze_metrics",
+                    description="Calculate code metrics including complexity and maintainability",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string", "description": "Source code to analyze"},
+                            "language": {"type": "string", "description": "Programming language", "default": "python"}
+                        },
+                        "required": ["code"]
+                    }
+                ),
+                Tool(
+                    name="security_scan",
+                    description="Scan code for common security vulnerabilities",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string", "description": "Source code to scan"},
+                            "severity_threshold": {"type": "string", "enum": ["low", "medium", "high"], "default": "medium"}
+                        },
+                        "required": ["code"]
+                    }
+                ),
+                Tool(
+                    name="performance_analysis",
+                    description="Analyze code for performance bottlenecks and optimization opportunities",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string", "description": "Source code to analyze"},
+                            "focus": {"type": "string", "enum": ["memory", "cpu", "io", "all"], "default": "all"}
+                        },
+                        "required": ["code"]
+                    }
+                )
+            ]
+
+        @self.server.call_tool()
+        async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+            if name == "analyze_metrics":
+                return await self.analyze_metrics(arguments)
+            elif name == "security_scan":
+                return await self.security_scan(arguments)
+            elif name == "performance_analysis":
+                return await self.performance_analysis(arguments)
+            else:
+                raise ValueError(f"Unknown tool: {name}")
+
+    async def analyze_metrics(self, args: Dict[str, Any]) -> List[types.TextContent]:
+        code = args.get("code", "")
+        language = args.get("language", "python")
+        
+        # Calculate basic metrics
+        lines = len(code.split('\n'))
+        chars = len(code)
+        functions = code.count('def ') if language == 'python' else code.count('function ')
+        classes = code.count('class ') if language == 'python' else 0
+        
+        # Estimate complexity
+        complexity_indicators = ['if ', 'for ', 'while ', 'try ', 'except ', 'elif ']
+        complexity_score = sum(code.count(indicator) for indicator in complexity_indicators)
+        
+        report = f"""
+Code Metrics Analysis:
+- Lines of code: {lines}
+- Characters: {chars}
+- Functions: {functions}
+- Classes: {classes}
+- Complexity score: {complexity_score}
+- Complexity level: {'High' if complexity_score > 20 else 'Medium' if complexity_score > 10 else 'Low'}
+
+Recommendations:
+- {'Consider breaking down complex functions' if complexity_score > 20 else 'Complexity is manageable'}
+- {'Add more documentation' if lines > 100 and '"""' not in code else 'Documentation appears adequate'}
+"""
+        
+        return [types.TextContent(type="text", text=report)]
+
+    async def security_scan(self, args: Dict[str, Any]) -> List[types.TextContent]:
+        code = args.get("code", "")
+        threshold = args.get("severity_threshold", "medium")
+        
+        issues = []
+        
+        # Check for common security issues
+        if 'eval(' in code:
+            issues.append("HIGH: Use of eval() function detected - potential code injection risk")
+        
+        if 'exec(' in code:
+            issues.append("HIGH: Use of exec() function detected - potential code injection risk")
+        
+        if 'password' in code.lower() and ('=' in code or 'input(' in code):
+            issues.append("MEDIUM: Potential hardcoded password or password handling issue")
+        
+        if 'sql' in code.lower() and ('+' in code or f'f"' in code):
+            issues.append("HIGH: Potential SQL injection vulnerability")
+        
+        if not issues:
+            issues.append("No obvious security issues detected")
+        
+        report = f"""
+Security Scan Results (threshold: {threshold}):
+
+Issues Found:
+{''.join(f'- {issue}' for issue in issues)}
+
+Recommendations:
+- Use parameterized queries for database operations
+- Avoid eval() and exec() functions
+- Store secrets in environment variables
+- Implement proper input validation
+"""
+        
+        return [types.TextContent(type="text", text=report)]
+
+    async def performance_analysis(self, args: Dict[str, Any]) -> List[types.TextContent]:
+        code = args.get("code", "")
+        focus = args.get("focus", "all")
+        
+        suggestions = []
+        
+        # Basic performance analysis
+        if 'for ' in code and 'in range(' in code and '.append(' in code:
+            suggestions.append("Consider using list comprehensions instead of append in loops")
+        
+        if code.count('import ') > 10:
+            suggestions.append("Consider lazy imports to improve startup time")
+        
+        if 'time.sleep(' in code:
+            suggestions.append("Review sleep() usage - consider async alternatives")
+        
+        if '**' in code:
+            suggestions.append("Power operations can be expensive - consider alternatives for simple cases")
+        
+        if not suggestions:
+            suggestions.append("No obvious performance issues detected")
+        
+        report = f"""
+Performance Analysis (focus: {focus}):
+
+Optimization Opportunities:
+{''.join(f'- {suggestion}' for suggestion in suggestions)}
+
+General Recommendations:
+- Profile code to identify actual bottlenecks
+- Consider caching for expensive operations
+- Use appropriate data structures for your use case
+- Implement connection pooling for database operations
+"""
+        
+        return [types.TextContent(type="text", text=report)]
+
+    async def run(self):
+        async with self.server as (read_stream, write_stream):
+            await self.server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="code-analysis-server",
+                    server_version="1.0.0",
+                    capabilities=self.server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    )
+                )
+            )
+
+
+if __name__ == "__main__":
+    server = CodeAnalysisMCPServer()
+    asyncio.run(server.run())
+#+end_src
 
 * Appendix
 :PROPERTIES:
@@ -726,12 +1952,172 @@ Connect with other Claude Code users:
 :CUSTOM_ID: glossary
 :END:
 
+*** Core Terms
+:PROPERTIES:
+:CUSTOM_ID: core-terms
+:END:
+
+- *Claude Code*: Anthropic's official CLI tool for AI-assisted development
+- *MCP (Model Context Protocol)*: Standardized protocol for connecting AI models to external tools and data sources
+- *Custom Commands*: User-defined structured prompts for specific tasks
+- *Bedrock*: AWS service providing access to Claude models through managed infrastructure
+- *Tool*: A function that Claude can call through MCP to perform specific actions
+- *Resource*: Data source that Claude can access through MCP (files, databases, APIs)
+- *Prompt Engineering*: Crafting effective prompts to get optimal responses from Claude
+
+*** Technical Terms
+:PROPERTIES:
+:CUSTOM_ID: technical-terms
+:END:
+
+- *JSON-RPC*: Remote procedure call protocol used by MCP for communication
+- *stdin/stdout*: Standard input/output streams used for MCP communication
+- *API Key*: Authentication token for accessing Anthropic's services
+- *IAM (Identity and Access Management)*: AWS service for managing permissions
+- *CLI (Command Line Interface)*: Text-based interface for interacting with software
+- *SDK (Software Development Kit)*: Set of tools for developing applications with a service
+
 ** Configuration Templates
 :PROPERTIES:
 :CUSTOM_ID: config-templates
 :END:
 
+*** Basic Claude Code Configuration
+:PROPERTIES:
+:CUSTOM_ID: basic-config
+:END:
+
+#+begin_src json
+# ~/.claude/config.json
+{
+  "api_key": "${ANTHROPIC_API_KEY}",
+  "model": "claude-3-sonnet-20240229",
+  "max_tokens": 4000,
+  "temperature": 0.1
+}
+#+end_src
+
+*** MCP Server Configuration
+:PROPERTIES:
+:CUSTOM_ID: mcp-config
+:END:
+
+#+begin_src json
+# ~/.claude/mcp_servers.json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/allowed/path"]
+    },
+    "sqlite": {
+      "command": "npx", 
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "/path/to/database.db"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "custom": {
+      "command": "python",
+      "args": ["/path/to/custom_server.py"],
+      "env": {
+        "CUSTOM_CONFIG": "/path/to/config.json"
+      }
+    }
+  }
+}
+#+end_src
+
+*** AWS Bedrock Configuration
+:PROPERTIES:
+:CUSTOM_ID: bedrock-config
+:END:
+
+#+begin_src shell
+# Environment variables for Bedrock
+export CLAUDE_CODE_USE_BEDROCK=1
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+
+# Or use AWS CLI configuration
+aws configure set region us-east-1
+aws configure set aws_access_key_id your_access_key
+aws configure set aws_secret_access_key your_secret_key
+#+end_src
+
+*** Docker Development Environment
+:PROPERTIES:
+:CUSTOM_ID: docker-config
+:END:
+
+#+begin_src yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  claude-code:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+      - claude-config:/home/node/.claude
+      - ~/.gitconfig:/home/node/.gitconfig:ro
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    working_dir: /workspace
+    command: /bin/zsh
+
+volumes:
+  claude-config:
+#+end_src
+
 ** Further Reading
 :PROPERTIES:
 :CUSTOM_ID: further-reading
 :END:
+
+*** Official Documentation
+:PROPERTIES:
+:CUSTOM_ID: official-docs
+:END:
+
+- [[https://docs.anthropic.com/en/docs/claude-code][Claude Code Documentation]] - Comprehensive official documentation
+- [[https://docs.anthropic.com/en/docs/mcp][Model Context Protocol Specification]] - Technical specification for MCP
+- [[https://www.anthropic.com/engineering/claude-code-best-practices][Claude Code Best Practices]] - Official engineering blog post
+- [[https://docs.anthropic.com/en/api][Anthropic API Documentation]] - API reference for direct integration
+
+*** Advanced Topics
+:PROPERTIES:
+:CUSTOM_ID: advanced-topics
+:END:
+
+- [[https://github.com/anthropics/claude-code][Claude Code GitHub Repository]] - Source code and examples
+- [[https://github.com/modelcontextprotocol][MCP GitHub Organization]] - MCP servers and tools
+- [[https://docs.aws.amazon.com/bedrock/][AWS Bedrock Documentation]] - Bedrock service documentation
+- [[https://github.com/anthropics/claude-code/tree/main/.devcontainer][Dev Container Configuration]] - Advanced Docker setup
+
+*** Community Resources
+:PROPERTIES:
+:CUSTOM_ID: community-resources
+:END:
+
+- [[https://discord.gg/anthropic][Anthropic Discord Server]] - Community discussions and support
+- [[https://github.com/anthropics/claude-code/discussions][GitHub Discussions]] - Feature requests and community Q&A
+- [[https://docs.anthropic.com/en/docs/build-with-claude][Build with Claude]] - Tutorials and examples for developers
+- [[https://www.anthropic.com/research][Anthropic Research]] - Latest research papers and findings
+
+*** Integration Examples
+:PROPERTIES:
+:CUSTOM_ID: integration-examples
+:END:
+
+- [[https://github.com/anthropics/mcp-examples][MCP Examples Repository]] - Sample MCP server implementations
+- [[https://docs.anthropic.com/en/docs/claude-code/tutorials][Claude Code Tutorials]] - Step-by-step integration guides
+- [[https://github.com/anthropics/claude-code/tree/main/examples][Claude Code Examples]] - Real-world usage examples
+- [[https://www.anthropic.com/engineering][Anthropic Engineering Blog]] - Technical deep dives and case studies
