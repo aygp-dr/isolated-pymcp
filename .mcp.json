@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "qrcode": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@jwalsh/mcp-server-qrcode"
+      ],
+      "env": {}
+    }
+  }
+}

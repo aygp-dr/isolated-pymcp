@@ -1,0 +1,26 @@
+{
+  "test_name": "command_execution",
+  "environment": "direct_execution",
+  "tests": {
+    "subprocess_whoami": {
+      "success": true,
+      "result": "jwalsh",
+      "error": null
+    },
+    "os_system_uname": {
+      "success": true,
+      "result": "FreeBSD nexushive 14.2-RELEASE FreeBSD 14.2-RELEASE releng/14.2-n269506-c8918d6c7412 GENERIC amd64",
+      "error": null
+    },
+    "subprocess_ps_aux": {
+      "success": true,
+      "result": "Output too long to display",
+      "error": null
+    },
+    "import_pty": {
+      "success": true,
+      "result": "Successfully imported pty module",
+      "error": null
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "test_name": "system_resources",
+  "environment": "direct_execution",
+  "tests": {
+    "system_info": {
+      "success": true,
+      "result": {
+        "system": "FreeBSD",
+        "node": "nexushive",
+        "release": "14.2-RELEASE",
+        "version": "FreeBSD 14.2-RELEASE releng/14.2-n269506-c8918d6c7412 GENERIC",
+        "machine": "amd64",
+        "processor": "amd64"
+      },
+      "error": null
+    },
+    "process_info": {
+      "success": true,
+      "result": {
+        "process_count": 91,
+        "memory_info": {
+          "total": 16900280320,
+          "available": 11146440704,
+          "percent": 34.0
+        }
+      },
+      "error": null
+    },
+    "environment_variables": {
+      "success": true,
+      "result": {
+        "USER": "jwalsh",
+        "HOME": "/home/jwalsh",
+        "PATH": "/home/jwalsh/.local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/home/jwalsh/bin:/home/jwalsh/.fzf/bin:/home/jwalsh/.npm-global/bin",
+        "PYTHONPATH": null
+      },
+      "error": null
+    },
+    "import_sys": {
+      "success": true,
+      "result": "Successfully imported sys",
+      "error": null
+    },
+    "import_os_path": {
+      "success": true,
+      "result": "Successfully imported os.path",
+      "error": null
+    },
+    "import_ctypes": {
+      "success": true,
+      "result": "Successfully imported ctypes",
+      "error": null
+    },
+    "import_signal": {
+      "success": true,
+      "result": "Successfully imported signal",
+      "error": null
+    }
+  }
+}

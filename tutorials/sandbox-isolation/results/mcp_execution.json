@@ -1,0 +1,36 @@
+{
+  "test_name": "sandbox_bypass_attempts",
+  "environment": "mcp_sandbox",
+  "tests": {
+    "ctypes_system_call": {
+      "success": false,
+      "result": null,
+      "error": "No module named 'ctypes'"
+    },
+    "exec_code_execution": {
+      "success": false,
+      "result": null,
+      "error": "exec() function is not available in this environment"
+    },
+    "pathlib_file_access": {
+      "success": false,
+      "result": null,
+      "error": "No such file or directory: '/etc/passwd'"
+    },
+    "signal_manipulation": {
+      "success": false,
+      "result": null,
+      "error": "No module named 'signal'"
+    },
+    "load_c_extension": {
+      "success": false,
+      "result": null,
+      "error": "Cannot load native module"
+    },
+    "multiprocessing_execution": {
+      "success": false,
+      "result": null,
+      "error": "No module named 'multiprocessing'"
+    }
+  }
+}

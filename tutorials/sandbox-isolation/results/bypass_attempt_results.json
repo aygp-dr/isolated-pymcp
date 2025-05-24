@@ -1,0 +1,36 @@
+{
+  "test_name": "sandbox_bypass_attempts",
+  "environment": "direct_execution",
+  "tests": {
+    "ctypes_system_call": {
+      "success": true,
+      "result": "uid=1001(jwalsh) gid=1001(jwalsh) groups=1001(jwalsh),0(wheel),5(operator),348(davfs2),1002(sudo)",
+      "error": null
+    },
+    "exec_code_execution": {
+      "success": true,
+      "result": "Eval executed",
+      "error": null
+    },
+    "pathlib_file_access": {
+      "success": true,
+      "result": "root:*:0:0:Charlie &:/root:/bin/sh",
+      "error": null
+    },
+    "signal_manipulation": {
+      "success": true,
+      "result": "Successfully sent signal to process",
+      "error": null
+    },
+    "load_c_extension": {
+      "success": true,
+      "result": "Loaded extension module: /usr/local/lib/python3.11/site-packages/_gv.so",
+      "error": null
+    },
+    "multiprocessing_execution": {
+      "success": true,
+      "result": "Multiprocessing worker executed",
+      "error": null
+    }
+  }
+}

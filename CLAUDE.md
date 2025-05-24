@@ -27,6 +27,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Design for cross-platform compatibility (Linux and FreeBSD)
 - Follow conventional commits format: `<type>[scope]: <description>`
 - Git branches: `<type>/<issue-number>-<short-description>` (e.g., `feat/33-feature-name`)
+- **CLI Tool**: Use gh cli tool by default
+- Use `--trailer` during commits
+- Use conventional commits
+- Don't use "generated with" in the body of commit messages
 
 ## Project Organization
 - **algorithms/**: Core algorithm implementations with multiple approaches (recursive, iterative)

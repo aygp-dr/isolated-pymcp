@@ -1,0 +1,36 @@
+{
+  "test_name": "network_access",
+  "environment": "direct_execution",
+  "tests": {
+    "dns_lookup": {
+      "success": true,
+      "result": "23.40.60.56",
+      "error": null
+    },
+    "connect_port_80": {
+      "success": true,
+      "result": "Successfully connected to www.example.com:80",
+      "error": null
+    },
+    "import_requests": {
+      "success": true,
+      "result": "Successfully imported requests",
+      "error": null
+    },
+    "import_urllib_request": {
+      "success": true,
+      "result": "Successfully imported urllib.request",
+      "error": null
+    },
+    "import_http_client": {
+      "success": true,
+      "result": "Successfully imported http.client",
+      "error": null
+    },
+    "open_local_socket": {
+      "success": true,
+      "result": "Successfully opened socket on 127.0.0.1:8888",
+      "error": null
+    }
+  }
+}

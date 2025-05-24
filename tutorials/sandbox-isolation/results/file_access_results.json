@@ -1,0 +1,37 @@
+{
+  "test_name": "file_system_access",
+  "environment": "direct_execution",
+  "tests": {
+    "read_etc_passwd": {
+      "success": true,
+      "result": "root:*:0:0:Charlie &:/root:/bin/sh",
+      "error": null
+    },
+    "list_home_directory": {
+      "success": true,
+      "result": [
+        "aygp-dr",
+        "emacs-service",
+        "aquarium",
+        "dave",
+        "matrix"
+      ],
+      "error": null
+    },
+    "get_user_info": {
+      "success": true,
+      "result": {
+        "name": "jwalsh",
+        "uid": 1001,
+        "gid": 1001,
+        "home": "/home/jwalsh"
+      },
+      "error": null
+    },
+    "write_to_tmp": {
+      "success": true,
+      "result": "Successfully wrote to /tmp/sandbox_test.txt",
+      "error": null
+    }
+  }
+}
