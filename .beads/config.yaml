@@ -17,10 +17,10 @@
 # no-daemon: false
 
 # Disable auto-flush of database to JSONL after mutations
-# no-auto-flush: false
+no-auto-flush: false
 
 # Disable auto-import from JSONL when it's newer than database
-# no-auto-import: false
+no-auto-import: false
 
 # Enable JSON output by default
 # json: false
@@ -35,7 +35,7 @@
 # auto-start-daemon: true
 
 # Debounce interval for auto-flush (can also use BEADS_FLUSH_DEBOUNCE)
-# flush-debounce: "5s"
+flush-debounce: "5s"
 
 # Git branch for beads commits (bd sync will commit to this branch)
 # IMPORTANT: Set this for team projects so all clones use the same sync branch.
