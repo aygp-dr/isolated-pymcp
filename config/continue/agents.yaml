@@ -1,0 +1,122 @@
+# CONTINUE Framework Agent Configuration
+# Defines agent roles, permissions, and communication channels
+
+agents:
+  builder:
+    name: Builder
+    color: green
+    description: Implementation, bug fixes, features
+    permissions:
+      code: read_write
+      git: commit  # No bulk operations like 'git add -A'
+      system: execute
+    constraints:
+      - "No bulk git operations (git add -A, git add .)"
+      - "Conventional commit format required"
+      - "IRC announcements for significant actions"
+    channels:
+      primary: builder
+      announce: true
+    labels:
+      - implementation
+      - bug
+      - feature
+
+  observer:
+    name: Observer
+    color: blue
+    description: Analysis, patterns, documentation
+    permissions:
+      code: read_only
+      observations: write
+      git: none
+      system: read_only
+    constraints:
+      - "Maintain objectivity in analysis"
+      - "No code modifications"
+      - "Document patterns and insights"
+    channels:
+      primary: observer
+      announce: true
+    labels:
+      - architecture
+      - documentation
+      - analysis
+
+  meta_observer:
+    name: Meta-Observer
+    color: purple
+    description: System monitoring, communication tracking
+    permissions:
+      code: read_only
+      system: read_only
+      channels: monitor_all
+    constraints:
+      - "Read-only system-wide access"
+      - "Generate session summaries"
+      - "Track inter-agent communication"
+    channels:
+      primary: meta
+      monitor:
+        - builder
+        - observer
+        - announce
+        - control
+      announce: true
+    labels:
+      - meta
+      - process
+      - monitoring
+
+channels:
+  builder:
+    description: Builder agent communication
+    access:
+      - builder
+      - meta_observer
+
+  observer:
+    description: Observer agent communication
+    access:
+      - observer
+      - meta_observer
+
+  meta:
+    description: Meta-Observer agent communication
+    access:
+      - meta_observer
+
+  announce:
+    description: IRC-style broadcast announcements
+    access:
+      - builder
+      - observer
+      - meta_observer
+    mode: broadcast
+
+  control:
+    description: Control commands (shutdown, pause, etc.)
+    access:
+      - meta_observer
+    mode: control
+
+session:
+  lifecycle:
+    - dashboard_init
+    - agent_startup
+    - active_development
+    - session_handoff  # "Landing the plane"
+
+  handoff_protocol:
+    - drain_fifo_channels
+    - update_beads_state
+    - run_bd_sync
+    - generate_session_summary
+    - git_push
+
+security:
+  fifo_permissions: 600  # Owner read/write only
+  fifo_directory: 700    # Owner access only
+  sensitive_projects:
+    - Use restricted directories outside /tmp
+    - Consider project-specific namespacing
