@@ -369,6 +369,18 @@ pydantic-mcp-stop: ## Stop Pydantic MCP run-python server
 		echo "No PID file found. Server may not be running."; \
 	fi
 
+# Beads dependency management targets
+.PHONY: dep-stats dep-validate dep-analysis
+
+dep-stats: ## Show dependency statistics
+	@./scripts/dep-analysis.sh --stats
+
+dep-validate: ## Validate dependencies (check for cycles, dangling refs, etc.)
+	@./scripts/dep-analysis.sh --validate
+
+dep-analysis: ## Run full dependency analysis (stats + validation)
+	@./scripts/dep-analysis.sh --stats --validate
+
 # Git worktree management targets
 .PHONY: worktree-new worktree-list worktree-status worktree-delete worktree-switch worktree-init
 
@@ -419,4 +431,33 @@ worktree-init: ## Initialize worktree environment(s) (usage: make worktree-init 
 	else \
 		./scripts/initialize-worktrees.sh; \
 	fi
+
+# Persona-based issue filtering targets
+.PHONY: persona-list persona-architect persona-implementer persona-reviewer persona-product-owner persona-builder persona-observer persona-meta-observer
+
+persona-list: ## List all available personas and CONTINUE agents
+	@./scripts/persona-filter.sh --list-personas
+	@echo ""
+	@./scripts/persona-filter.sh --list-agents
+
+persona-architect: ## Show architect persona issues (usage: make persona-architect [FLAGS="--status open"])
+	@./scripts/persona-filter.sh architect $(FLAGS)
+
+persona-implementer: ## Show implementer persona issues (usage: make persona-implementer [FLAGS="--status open"])
+	@./scripts/persona-filter.sh implementer $(FLAGS)
+
+persona-reviewer: ## Show reviewer persona issues (usage: make persona-reviewer [FLAGS="--status open"])
+	@./scripts/persona-filter.sh reviewer $(FLAGS)
+
+persona-product-owner: ## Show product owner persona issues (usage: make persona-product-owner [FLAGS="--status open"])
+	@./scripts/persona-filter.sh product_owner $(FLAGS)
+
+persona-builder: ## Show builder agent issues (usage: make persona-builder [FLAGS="--priority P1"])
+	@./scripts/persona-filter.sh builder $(FLAGS)
+
+persona-observer: ## Show observer agent issues (usage: make persona-observer [FLAGS="--priority P1"])
+	@./scripts/persona-filter.sh observer $(FLAGS)
+
+persona-meta-observer: ## Show meta-observer agent issues (usage: make persona-meta-observer [FLAGS="--priority P1"])
+	@./scripts/persona-filter.sh meta_observer $(FLAGS)
 

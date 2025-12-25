@@ -1,0 +1,162 @@
+# Persona-based Label Configuration for Beads
+#
+# This file defines persona-to-label mappings for filtering issues in the Beads
+# issue tracker. Each persona represents a different role or perspective when
+# working with issues.
+#
+# Usage: scripts/persona-filter.sh <persona> [additional bd list flags]
+
+# Classic software development personas
+personas:
+  # Architect: Focuses on high-level design and system structure
+  architect:
+    description: "System architecture and high-level design"
+    labels:
+      - architecture
+      - epic
+    continue_agent: Observer
+    filters:
+      # Architects typically work on open or in_progress items
+      status: ["open", "in_progress"]
+      # Usually higher priority architectural decisions
+      priority_max: "P2"
+
+  # Implementer: Focuses on feature development and bug fixes
+  implementer:
+    description: "Feature development and bug fixing"
+    labels:
+      - implementation
+      - bug
+      - feature
+    continue_agent: Builder
+    filters:
+      # Implementers work on active development
+      status: ["open", "in_progress"]
+
+  # Reviewer: Focuses on code review, testing, and quality assurance
+  reviewer:
+    description: "Code review and quality assurance"
+    labels:
+      - review
+      - testing
+    continue_agent: Observer
+    filters:
+      status: ["open", "in_progress"]
+
+  # Product Owner: Focuses on customer-facing features and user stories
+  product_owner:
+    description: "Customer-facing features and user stories"
+    labels:
+      - customer-facing
+      - user-story
+    continue_agent: Observer
+    filters:
+      status: ["open", "in_progress", "blocked"]
+
+# CONTINUE agent mappings (alternative grouping)
+continue_agents:
+  # Builder: Hands-on implementation work
+  builder:
+    description: "Implementation, bug fixes, and feature development"
+    labels:
+      - implementation
+      - bug
+      - feature
+    personas: ["implementer"]
+
+  # Observer: Analysis, architecture, and documentation
+  observer:
+    description: "Architecture, documentation, and analysis"
+    labels:
+      - architecture
+      - documentation
+      - analysis
+      - review
+      - testing
+    personas: ["architect", "reviewer", "product_owner"]
+
+  # Meta-Observer: Process improvement and monitoring
+  meta_observer:
+    description: "Process improvement and system monitoring"
+    labels:
+      - meta
+      - process
+      - monitoring
+    personas: []
+
+# Label definitions with descriptions
+labels:
+  # Architect labels
+  architecture:
+    description: "System architecture and design decisions"
+    color: "#5319e7"
+    personas: ["architect"]
+
+  epic:
+    description: "Large body of work containing multiple features"
+    color: "#3e4b9e"
+    personas: ["architect"]
+
+  # Implementer labels
+  implementation:
+    description: "Feature or component implementation"
+    color: "#0e8a16"
+    personas: ["implementer"]
+
+  bug:
+    description: "Bug fix or error correction"
+    color: "#d73a4a"
+    personas: ["implementer"]
+
+  feature:
+    description: "New feature development"
+    color: "#0075ca"
+    personas: ["implementer"]
+
+  # Reviewer labels
+  review:
+    description: "Code review or peer review"
+    color: "#fbca04"
+    personas: ["reviewer"]
+
+  testing:
+    description: "Testing, QA, or test automation"
+    color: "#d4c5f9"
+    personas: ["reviewer"]
+
+  # Product Owner labels
+  customer_facing:
+    description: "Customer-facing features or changes"
+    color: "#c5def5"
+    personas: ["product_owner"]
+
+  user_story:
+    description: "User story or user-focused requirement"
+    color: "#bfdadc"
+    personas: ["product_owner"]
+
+  # CONTINUE agent labels
+  documentation:
+    description: "Documentation updates or improvements"
+    color: "#0075ca"
+    personas: ["observer"]
+
+  analysis:
+    description: "Analysis, investigation, or research"
+    color: "#d876e3"
+    personas: ["observer"]
+
+  meta:
+    description: "Meta-level work about the project itself"
+    color: "#ffffff"
+    personas: ["meta_observer"]
+
+  process:
+    description: "Process improvement or workflow changes"
+    color: "#ededed"
+    personas: ["meta_observer"]
+
+  monitoring:
+    description: "Monitoring, metrics, or observability"
+    color: "#fef2c0"
+    personas: ["meta_observer"]
