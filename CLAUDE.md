@@ -35,6 +35,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test Pydantic MCP**: `make pydantic-mcp-test` - Test Pydantic MCP run-python server
 - **Stop Pydantic MCP**: `make pydantic-mcp-stop` - Stop Pydantic MCP run-python server
 
+## Beads Dependency Commands
+- **Show dependency stats**: `make dep-stats` - Display comprehensive dependency statistics
+- **Validate dependencies**: `make dep-validate` - Check for cycles, dangling refs, and other issues
+- **Full analysis**: `make dep-analysis` - Run stats and validation together
+- **Check cycles**: `bd dep cycles` - Detect circular dependencies
+- **Show blocked**: `bd blocked` - List all blocked issues
+- **Add dependency**: `bd dep add <issue> <depends-on> [--type TYPE]` - Add a dependency (blocks, related, discovered-from, parent-child)
+- **Show dep tree**: `bd dep tree <issue>` - Show full dependency tree for an issue
+
 ## Git Worktree Commands
 - **Create worktree**: `make worktree-new NAME=feature-name [ISSUE=42] [INIT=1]` - Create a new git worktree
 - **List worktrees**: `make worktree-list` - List all git worktrees

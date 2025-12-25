@@ -12,6 +12,26 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Dependency Management
+
+Beads supports multiple dependency types for modeling complex relationships between issues:
+
+- **blocks**: Hard dependency - issue cannot proceed until blocker is resolved
+- **related**: Soft connection - issues are related but independent
+- **discovered-from**: Traceability chain - tracks issue discovery lineage
+- **parent-child**: Hierarchical relationship - epics and sub-tasks
+
+For detailed documentation, see [docs/dependency-types.md](docs/dependency-types.md).
+
+Quick commands:
+```bash
+bd dep add <issue> <depends-on> --type blocks        # Add blocking dependency
+bd dep add <issue> <related-issue> --type related    # Link related work
+bd blocked                                            # List blocked issues
+bd dep cycles                                         # Check for cycles
+./scripts/dep-analysis.sh --stats --validate         # Analyze dependencies
+```
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
