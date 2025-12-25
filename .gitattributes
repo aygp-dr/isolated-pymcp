@@ -19,3 +19,6 @@ diagrams/*.mmd linguist-generated=true
 
 # Org files
 *.org diff=org
+
+# Use bd merge for beads JSONL files
+.beads/issues.jsonl merge=beads
